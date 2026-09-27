@@ -1,0 +1,79 @@
+name: Firmware release
+
+# Bouwt een versie voor de ESP32 en zet de .bin-bestanden in een GitHub-release.
+# Handmatig starten: tabblad Actions → "Firmware release" → Run workflow → versienummer invullen.
+# Automatisch: bij het pushen van een nieuwe tag (bijv. v8), mits deze workflow in die commit staat.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versienummer (bijv. 7 voor firmware/Timer_ZZ_V7)"
+        required: true
+        default: "7"
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  FQBN: esp32:esp32:esp32
+  ESP32_CORE: "3.3.12"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Versie bepalen
+        id: v
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            N="${{ inputs.version }}"
+          else
+            N="${GITHUB_REF_NAME#v}"
+          fi
+          SKETCH="firmware/Timer_ZZ_V$N"
+          test -d "$SKETCH" || { echo "Map $SKETCH bestaat niet"; exit 1; }
+          echo "n=$N" >> "$GITHUB_OUTPUT"
+          echo "sketch=$SKETCH" >> "$GITHUB_OUTPUT"
+
+      - uses: arduino/setup-arduino-cli@v2
+
+      - name: ESP32-core en bibliotheken installeren
+        run: |
+          arduino-cli config init
+          arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32@${ESP32_CORE}
+          arduino-cli lib install "TM1637@1.2.0" "Bounce2@2.72"
+
+      - name: Compileren
+        run: |
+          arduino-cli compile --fqbn "$FQBN" --export-binaries --output-dir build "${{ steps.v.outputs.sketch }}"
+
+      - name: Release-bestanden klaarzetten
+        run: |
+          N=${{ steps.v.outputs.n }}
+          B=build/Timer_ZZ_V$N.ino
+          mkdir -p release
+          cp "$B.merged.bin"     "release/Timer_ZZ_V${N}_esp32_volledig_0x0.bin"
+          cp "$B.bin"            "release/Timer_ZZ_V${N}_esp32_app_0x10000.bin"
+          cp "$B.bootloader.bin" "release/Timer_ZZ_V${N}_esp32_bootloader_0x1000.bin"
+          cp "$B.partitions.bin" "release/Timer_ZZ_V${N}_esp32_partities_0x8000.bin"
+          (cd release && sha256sum *.bin > SHA256SUMS.txt)
+
+      - name: GitHub-release maken
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.v.outputs.n }}
+          name: Timer ZZ V${{ steps.v.outputs.n }}
+          body: |
+            Firmware Timer ZZ versie ${{ steps.v.outputs.n }} voor ESP32 (board: ESP32 Dev Module, core ${{ env.ESP32_CORE }}).
+
+            **Flashen (makkelijkst):** `Timer_ZZ_V${{ steps.v.outputs.n }}_esp32_volledig_0x0.bin` op adres `0x0`.
+            Zie de README, sectie "Firmware flashen", voor de stappen.
+          files: release/*

@@ -18,6 +18,7 @@ Deze repository bevat alle zeven ontwikkelversies. Elke versie staat in een eige
 - [Het schuifregister-display](#het-schuifregister-display)
 - [Versieoverzicht](#versieoverzicht)
 - [Bouwen en uploaden](#bouwen-en-uploaden)
+- [Firmware flashen (release)](#firmware-flashen-release)
 - [Bekende problemen](#bekende-problemen)
 
 ---
@@ -28,6 +29,8 @@ Deze repository bevat alle zeven ontwikkelversies. Elke versie staat in een eige
 timer-zz/
 ├── README.md              ← dit bestand
 ├── CHANGELOG.md           ← gedetailleerde wijzigingen per versie
+├── .github/workflows/
+│   └── release.yml        ← bouwt de .bin-bestanden en maakt een GitHub-release
 └── firmware/
     ├── Timer_ZZ_V1/Timer_ZZ_V1.ino
     ├── Timer_ZZ_V2/Timer_ZZ_V2.ino
@@ -254,11 +257,53 @@ arduino-cli upload  --fqbn esp32:esp32:esp32 -p <poort> firmware/Timer_ZZ_V7
 
 Pas de `--fqbn` aan als je een ander ESP32-bord gebruikt.
 
+V3 t/m V7 zijn gecompileerd met ESP32-core 3.3.12, TM1637 1.2.0 en Bounce2 2.72 (V7: 274 940 bytes flash, 22 268 bytes RAM).
+
+---
+
+## Firmware flashen (release)
+
+Bij elke release staan kant-en-klare `.bin`-bestanden, gebouwd voor een standaard ESP32 (board "ESP32 Dev Module", 4 MB flash). Je hebt dan geen Arduino IDE nodig.
+
+| Bestand | Adres | Gebruik |
+|---|---|---|
+| `Timer_ZZ_V7_esp32_volledig_0x0.bin` | `0x0` | **Aanbevolen.** Alles in één bestand (bootloader, partities en programma). |
+| `Timer_ZZ_V7_esp32_bootloader_0x1000.bin` | `0x1000` | Los: bootloader |
+| `Timer_ZZ_V7_esp32_partities_0x8000.bin` | `0x8000` | Los: partitietabel |
+| `Timer_ZZ_V7_esp32_app_0x10000.bin` | `0x10000` | Los: alleen het programma (update van een ESP32 die al Arduino-firmware heeft) |
+
+### Via de browser (Chrome of Edge)
+
+1. Ga naar de [Espressif esptool-js webflasher](https://espressif.github.io/esptool-js/).
+2. Sluit de ESP32 aan via USB en klik **Connect**; kies de COM-poort.
+3. Vul bij *Flash Address* `0x0` in en kies `Timer_ZZ_V7_esp32_volledig_0x0.bin`.
+4. Klik **Program**. Druk na afloop op de EN/RST-knop van de ESP32.
+
+Lukt verbinden niet, houd dan de BOOT-knop ingedrukt terwijl je op Connect klikt.
+
+### Via esptool (opdrachtregel)
+
+```bash
+pip install esptool
+esptool --chip esp32 --port COM5 --baud 921600 write-flash 0x0 Timer_ZZ_V7_esp32_volledig_0x0.bin
+```
+
+Vervang `COM5` door jouw poort (Linux/macOS: bijv. `/dev/ttyUSB0`). Bij oudere esptool-versies heet het commando `esptool.py ... write_flash`.
+
+### Een release maken
+
+De workflow `.github/workflows/release.yml` bouwt de firmware op GitHub en maakt de release:
+
+- **Handmatig:** tabblad **Actions** → **Firmware release** → **Run workflow** → versienummer (bijv. `7`).
+- **Automatisch:** push een nieuwe tag (bijv. `v8`) op een commit waarin de workflow staat.
+
+Gebruik je een ander ESP32-bord (bijv. ESP32-S3), pas dan `FQBN` in de workflow aan; de adressen verschillen per chip.
+
 ---
 
 ## Bekende problemen
 
-Deze punten zijn gevonden door de code te lezen; de code is bewust niet aangepast, zodat elke versie overeenkomt met het origineel.
+Deze punten zijn gevonden door de code te lezen; de compileerfouten van V1 en V2 zijn bevestigd met de compiler. De code is bewust niet aangepast, zodat elke versie overeenkomt met het origineel.
 
 ### V1
 - **Compileert niet.** `#define manual_relay` heeft geen waarde, waardoor `volatile bool manual_relay = false;` verandert in `volatile bool = false;`. Ook `pinMode(manual_relay, …)` en `attachInterrupt(digitalPinToInterrupt(manual_relay), …)` missen dan een pinnummer.
