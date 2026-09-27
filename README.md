@@ -42,7 +42,8 @@ timer-zz/
     ├── Timer_ZZ_V5/Timer_ZZ_V5.ino
     ├── Timer_ZZ_V6/Timer_ZZ_V6.ino
     ├── Timer_ZZ_V7/Timer_ZZ_V7.ino
-    └── Timer_ZZ_V8/Timer_ZZ_V8.ino   ← branch android-app
+    ├── Timer_ZZ_V8/Timer_ZZ_V8.ino   ← branch android-app, bord met normaal relais
+    └── Timer_ZZ_V9/Timer_ZZ_V9.ino   ← branch android-app, bord met PWM-relais
 android/                           ← Android-app (branch android-app)
 docs/                              ← analyse V8, protocol, app, testplan
 ```
@@ -234,6 +235,7 @@ In V7 schuift `updateShiftRegisterDisplay()` dezelfde drie bytes twee keer in (z
 | **V4** | `Bounce2`-debouncing i.p.v. interrupts, slaapmodus, nieuwe modus: eerst optellen tot 4:00 en dan aftellen vanaf 5:00. Driftvrije tijdbasis. |
 | **V5** | Reset direct bij indrukken, handmatige hoorn ook toegestaan tussen 5:00 en 4:00, auto-slaap na 6 min, pinnen `horn_button`/`timer_switch` gewisseld. |
 | **V6** | Instelbare relaisduur: 0,5 s bij start en 4:00, 1 s bij 1:00 en 0:00. |
+| **V9** *(branch android-app)* | V8 met PWM-relais (servopuls 50 Hz: 1 ms uit, 2 ms aan) voor het nieuwe bord. |
 | **V8** *(branch android-app)* | WiFi access point + WebSocket voor de Android-app, geplande starts, timer op absolute tijd, relais-timeout-fout opgelost. |
 | **V7** | Optelmodus vervangen door herhaalmodus (elke 5 min een nieuwe cyclus), tweede groot display, beginstand altijd 5:00, signaalcontrole elke loop-doorgang. |
 
@@ -255,6 +257,9 @@ Op de branch `android-app` staat V8: V7 plus een eigen WiFi-netwerk waarmee de A
 | [docs/PROTOCOL.md](docs/PROTOCOL.md) | WebSocket/JSON-protocol en kloksynchronisatie |
 | [docs/ANDROID_APP.md](docs/ANDROID_APP.md) | App installeren, bouwen, verbinden met de timer, standaardwaarden |
 | [docs/TESTPLAN.md](docs/TESTPLAN.md) | Testscenario's |
+| [docs/V9_PWM_RELAIS.md](docs/V9_PWM_RELAIS.md) | V9: aansturing van het PWM-relais |
+
+**Welke firmware?** Bord met normaal relais → **V8**. Bord met PWM-relais (RC-schakelaar) → **V9**. Verder zijn V8 en V9 gelijk en werken ze allebei met de app.
 
 Standaard: WiFi `ZZ-WedstrijdTimer` / `ZZstart2026`, IP `192.168.4.1`, beheerders-PIN `1234`.
 
