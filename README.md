@@ -4,7 +4,9 @@ Firmware voor een ESP32-gestuurde starttimer met hoornrelais, twee displays en e
 
 Deze repository bevat alle zeven ontwikkelversies. Elke versie staat in een eigen map én als eigen commit met tag (`v1` t/m `v7`) in de git-historie, zodat je de verschillen tussen versies direct kunt vergelijken.
 
-> **Laatste versie: V7** (`firmware/Timer_ZZ_V7`). V1 en V2 compileren niet zonder aanpassing (zie [Bekende problemen](#bekende-problemen)).
+> **Branch `android-app`:** V8 met WiFi en de Android-app *ZZ Wedstrijd Timer* — zie [V8 en Android-app](#v8-en-android-app).
+>
+> **Laatste versie op main: V7** (`firmware/Timer_ZZ_V7`). V1 en V2 compileren niet zonder aanpassing (zie [Bekende problemen](#bekende-problemen)).
 
 ---
 
@@ -17,6 +19,7 @@ Deze repository bevat alle zeven ontwikkelversies. Elke versie staat in een eige
 - [Opbouw van de code](#opbouw-van-de-code)
 - [Het schuifregister-display](#het-schuifregister-display)
 - [Versieoverzicht](#versieoverzicht)
+- [V8 en Android-app](#v8-en-android-app)
 - [Bouwen en uploaden](#bouwen-en-uploaden)
 - [Firmware flashen (release)](#firmware-flashen-release)
 - [Bekende problemen](#bekende-problemen)
@@ -38,7 +41,10 @@ timer-zz/
     ├── Timer_ZZ_V4/Timer_ZZ_V4.ino
     ├── Timer_ZZ_V5/Timer_ZZ_V5.ino
     ├── Timer_ZZ_V6/Timer_ZZ_V6.ino
-    └── Timer_ZZ_V7/Timer_ZZ_V7.ino
+    ├── Timer_ZZ_V7/Timer_ZZ_V7.ino
+    └── Timer_ZZ_V8/Timer_ZZ_V8.ino   ← branch android-app
+android/                           ← Android-app (branch android-app)
+docs/                              ← analyse V8, protocol, app, testplan
 ```
 
 Elke versie staat in een map met dezelfde naam als het `.ino`-bestand; de Arduino IDE vereist dat. De code zelf is ongewijzigd ten opzichte van de originele bestanden — alleen de bestandsnamen zijn gelijkgetrokken (`Timer_ZZ.ino` → `Timer_ZZ_V1.ino`, `Timer_ZZV5.ino` → `Timer_ZZ_V5.ino`, `Timer_ZZV6.ino` → `Timer_ZZ_V6.ino`, `Timer_ZZV7.ino` → `Timer_ZZ_V7.ino`).
@@ -228,6 +234,7 @@ In V7 schuift `updateShiftRegisterDisplay()` dezelfde drie bytes twee keer in (z
 | **V4** | `Bounce2`-debouncing i.p.v. interrupts, slaapmodus, nieuwe modus: eerst optellen tot 4:00 en dan aftellen vanaf 5:00. Driftvrije tijdbasis. |
 | **V5** | Reset direct bij indrukken, handmatige hoorn ook toegestaan tussen 5:00 en 4:00, auto-slaap na 6 min, pinnen `horn_button`/`timer_switch` gewisseld. |
 | **V6** | Instelbare relaisduur: 0,5 s bij start en 4:00, 1 s bij 1:00 en 0:00. |
+| **V8** *(branch android-app)* | WiFi access point + WebSocket voor de Android-app, geplande starts, timer op absolute tijd, relais-timeout-fout opgelost. |
 | **V7** | Optelmodus vervangen door herhaalmodus (elke 5 min een nieuwe cyclus), tweede groot display, beginstand altijd 5:00, signaalcontrole elke loop-doorgang. |
 
 Zie [CHANGELOG.md](CHANGELOG.md) voor de volledige beschrijving per versie. Verschillen bekijken kan ook met git, bijvoorbeeld:
@@ -235,6 +242,23 @@ Zie [CHANGELOG.md](CHANGELOG.md) voor de volledige beschrijving per versie. Vers
 ```bash
 git diff v6 v7 -- firmware/
 ```
+
+---
+
+## V8 en Android-app
+
+Op de branch `android-app` staat V8: V7 plus een eigen WiFi-netwerk waarmee de Android-app *ZZ Wedstrijd Timer* de timer bedient en precies dezelfde tijd toont. De timer blijft volledig zelfstandig werken; de app is een extra afstandsbediening en display.
+
+| Document | Inhoud |
+|---|---|
+| [docs/V8_ANALYSE_EN_WIJZIGINGEN.md](docs/V8_ANALYSE_EN_WIJZIGINGEN.md) | Analyse van V7, controle op tijdnauwkeurigheid, alle wijzigingen in V8 en waarom |
+| [docs/PROTOCOL.md](docs/PROTOCOL.md) | WebSocket/JSON-protocol en kloksynchronisatie |
+| [docs/ANDROID_APP.md](docs/ANDROID_APP.md) | App installeren, bouwen, verbinden met de timer, standaardwaarden |
+| [docs/TESTPLAN.md](docs/TESTPLAN.md) | Testscenario's |
+
+Standaard: WiFi `ZZ-WedstrijdTimer` / `ZZstart2026`, IP `192.168.4.1`, beheerders-PIN `1234`.
+
+V8 heeft twee extra bibliotheken nodig: **WebSockets** (Markus Sattler, 2.7.2) en **ArduinoJson** (7.4.3).
 
 ---
 
@@ -319,6 +343,9 @@ Deze punten zijn gevonden door de code te lezen; de compileerfouten van V1 en V2
 - `manualRelayActive` wordt alleen bijgewerkt wanneer de handmatige hoorn is toegestaan. Wordt de hoornknop vastgehouden op het moment dat het aftellen begint, dan blijft de waarde `true` en blijft het relais aan tijdens het aftellen.
 - Knoppen via interrupts zonder debouncing.
 - `DP_ALWAYS_ON` is gedefinieerd maar wordt niet gebruikt (de decimale punt staat aan via de standaardwaarde van `dp`).
+
+### V2 – V7: hoornsignaal kan wegvallen
+- `currentMillis` wordt aan het begin van `loop()` gelezen, `relayStartMillis = millis()` later in dezelfde doorgang. Valt daartussen een milliseconde-grens, dan loopt `currentMillis - relayStartMillis` over, en het relais wordt direct weer uitgezet: dat hoornsignaal klinkt niet. De kans per signaal is klein maar niet nul. Opgelost in V8 (`millis() - relayStartMillis`).
 
 ### V4 – V7
 - V4–V6: bij het bereiken van 0:00 zet de rustweergave het display in dezelfde loop-doorgang terug naar de beginstand, waardoor `0:00` vrijwel niet zichtbaar is.
