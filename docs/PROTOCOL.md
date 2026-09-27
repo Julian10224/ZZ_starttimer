@@ -87,6 +87,7 @@ Bij `sched_add` / `sched_edit` staat het `sched_id` in het antwoord.
 | `start` | – | Zelfde als de startknop |
 | `reset` of `stop` | – | Zelfde als kort op reset drukken |
 | `led` | `on` (bool) | LED-paneel aan/uit (slaapmodus) |
+| `horn` | `on` (bool) | Handmatige toeter. De app herhaalt `on: true` elke 200 ms zolang de knop is ingedrukt; de ESP zet de toeter uit na `on: false`, na 600 ms zonder herhaling of als de verbinding wegvalt. Zelfde toegestane momenten als de fysieke knop. Geen `ack`. |
 | `sync` | `t` (epoch-ms telefoon) | ESP antwoordt direct met `esp_ms` |
 | `settime` | `offset_ms` | Verschil epoch − ESP-tijd, voor geplande starts |
 | `sched_add` | `press_epoch`, `target_epoch`, `kind` | Geplande start toevoegen |

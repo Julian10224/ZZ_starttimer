@@ -43,6 +43,11 @@ Alle bestaande pinnen, displays, knoppen, modi, hoornmomenten en de slaapmodus z
 
 - `currentMillis - relayStartMillis` is vervangen door `millis() - relayStartMillis`, zodat de aftrekking niet meer kan overlopen (zie 2).
 
+### 3.2b Automatische slaap na een app-commando
+
+- App-commando's worden verwerkt in `webSocket.loop()`, ná het lezen van `currentMillis`. Zet zo'n commando `lastActiveMillis = millis()`, dan kan die 1 ms of meer groter zijn dan `currentMillis`. De slaapcheck `currentMillis - lastActiveMillis >= 360000` liep dan over en zette het net via de app aangezette LED-paneel direct weer uit. Om dezelfde reden kon een geplande start vanuit de slaapmodus mislukken.
+- Opgelost door met teken te vergelijken: `(long)(currentMillis - lastActiveMillis) >= 360000`. Deze fout zat alleen in de eerste versie van V8, niet in V7.
+
 ### 3.3 WiFi access point en WebSocket
 
 - De ESP start een eigen WiFi-netwerk (standaard `ZZ-WedstrijdTimer`, wachtwoord `ZZstart2026`, IP `192.168.4.1`). Er is geen router nodig.
@@ -59,6 +64,7 @@ Alle bestaande pinnen, displays, knoppen, modi, hoornmomenten en de slaapmodus z
 | LED-paneel uit | Zelfde als reset 3 s vasthouden; alleen als de timer niet loopt (net als fysiek). |
 | LED-paneel aan | Zelfde als reset indrukken in slaapmodus. |
 | Modus | Alleen weergave. De fysieke schakelaar bepaalt de modus. |
+| Toeter (ingedrukt houden) | Zelfde als de handmatige toeterknop, met dezelfde toegestane momenten. Veiligheid: de app moet het commando elke 200 ms herhalen, anders gaat de toeter na 600 ms uit; ook uit bij verbroken verbinding. |
 
 ### 3.5 Geplande starts
 

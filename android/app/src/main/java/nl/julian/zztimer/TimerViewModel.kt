@@ -7,6 +7,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -44,6 +46,7 @@ class TimerViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     override fun onCleared() {
+        hornReleased()
         client.stop()
     }
 
@@ -55,6 +58,28 @@ class TimerViewModel(app: Application) : AndroidViewModel(app) {
     fun reset() = send("reset")
 
     fun setLedPanel(on: Boolean) = send("led") { put("on", on) }
+
+    private var hornJob: Job? = null
+
+    /**
+     * Toeter aan zolang de knop is ingedrukt. Het "aan"-commando wordt elke 200 ms herhaald;
+     * de ESP zet de toeter zelf uit als dat 600 ms uitblijft (bijv. bij verbindingsverlies).
+     */
+    fun hornPressed() {
+        hornJob?.cancel()
+        hornJob = viewModelScope.launch {
+            while (true) {
+                client.sendNow("horn") { put("on", true) }
+                delay(200)
+            }
+        }
+    }
+
+    fun hornReleased() {
+        hornJob?.cancel()
+        hornJob = null
+        client.sendNow("horn") { put("on", false) }
+    }
 
     private fun send(cmd: String, build: JSONObject.() -> Unit = {}) {
         viewModelScope.launch {

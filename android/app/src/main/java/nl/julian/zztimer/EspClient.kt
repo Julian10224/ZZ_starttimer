@@ -355,6 +355,14 @@ class EspClient(context: Context, private val scope: CoroutineScope, host: Strin
 
     // ------------------------------------------------------------------ commando's
 
+    /** Stuurt een commando zonder op antwoord te wachten (voor de toeter, die vaak herhaald wordt). */
+    fun sendNow(cmd: String, build: JSONObject.() -> Unit = {}): Boolean {
+        val ws = socket ?: return false
+        val json = JSONObject().put("cmd", cmd).put("id", nextId.getAndIncrement())
+        json.build()
+        return ws.send(json.toString())
+    }
+
     suspend fun command(cmd: String, build: JSONObject.() -> Unit = {}): Ack {
         val ws = socket ?: return Ack(false, "Geen verbinding met de timer.")
         val id = nextId.getAndIncrement()

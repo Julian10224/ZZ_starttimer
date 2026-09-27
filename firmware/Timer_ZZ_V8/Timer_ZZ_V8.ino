@@ -85,6 +85,9 @@ uint8_t failedPinAttempts = 0;
 unsigned long pinLockUntil = 0;
 bool pinLocked = false;
 
+bool appHornActive = false;       // toeterknop in de app ingedrukt
+unsigned long appHornUntil = 0;   // vervalt als de app niet blijft verversen
+
 bool pendingWifiApply = false;
 unsigned long wifiApplyAt = 0;
 
@@ -319,6 +322,13 @@ void handleCommand(uint8_t num, uint8_t *payload, size_t length) {
     resetPressed = true;
     sendAck(num, id, true);
 
+  } else if (cmd == "horn") {
+    // Handmatige toeter vanuit de app. De app herhaalt "on" zolang de knop is
+    // ingedrukt; blijft dat uit (bijv. verbinding weg), dan gaat de toeter na 600 ms uit.
+    bool on = doc["on"] | false;
+    appHornActive = on;
+    if (on) appHornUntil = millis() + 600;
+
   } else if (cmd == "led") {
     bool on = doc["on"] | true;
     if (on) {
@@ -425,7 +435,10 @@ void handleCommand(uint8_t num, uint8_t *payload, size_t length) {
 void onWsEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
   switch (type) {
     case WStype_CONNECTED:
+      forceBroadcast = true;
+      break;
     case WStype_DISCONNECTED:
+      appHornActive = false;
       forceBroadcast = true;
       break;
     case WStype_TEXT:
@@ -610,7 +623,10 @@ void loop() {
 
   handleSchedules();                    // V8: geplande starts
 
-  if (!counting && !sleepMode && (currentMillis - lastActiveMillis >= 360000)) {
+  // V8: met teken vergelijken. Een app-commando (in webSocket.loop()) kan
+  // lastActiveMillis na currentMillis zetten; zonder teken loopt de aftrekking over
+  // en valt het net aangezette paneel direct weer in slaap.
+  if (!counting && !sleepMode && ((long)(currentMillis - lastActiveMillis) >= 360000L)) {
     sleepMode = true;
     digitalWrite(enable_matrix, LOW);
     clearShiftRegisterDisplay();
@@ -708,7 +724,10 @@ void loop() {
   bool inAllowedManualRange = counting &&
                               ((minutes == 5) || (minutes == 4 && seconds == 0) || (minutes == 4 && seconds > 0));
 
-  bool relayShouldBeOn = ((manualRelayActive && (!counting || inAllowedManualRange)) || relayActive);
+  if (appHornActive && (long)(millis() - appHornUntil) >= 0) appHornActive = false;
+
+  // V8: toeterknop in de app telt als de handmatige toeterknop (zelfde toegestane momenten)
+  bool relayShouldBeOn = (((manualRelayActive || appHornActive) && (!counting || inAllowedManualRange)) || relayActive);
 
   if (!counting || inAllowedManualRange) {
     digitalWrite(horn_button, LOW);

@@ -1,6 +1,7 @@
 package nl.julian.zztimer.ui
 
 import android.os.SystemClock
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -54,6 +55,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
@@ -294,11 +296,16 @@ private fun Controls(
                 StatusText(status?.horn == true, "AAN", "UIT", ZzColors.Horn)
             }
             Text(
-                if (status?.manualAllowed == true) "Handknop vrij" else "Handknop geblokkeerd",
+                if (status?.manualAllowed == true) "Handmatig toegestaan" else "Handmatig geblokkeerd",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        HornButton(
+            enabled = connected && status?.manualAllowed == true,
+            onPress = vm::hornPressed,
+            onRelease = vm::hornReleased,
+        )
     }
 
     SectionCard("GEPLANDE STARTS") {
@@ -342,6 +349,49 @@ private fun Controls(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+/** Handmatige toeter: klinkt zolang de knop wordt ingedrukt (zelfde regels als de fysieke knop). */
+@Composable
+private fun HornButton(enabled: Boolean, onPress: () -> Unit, onRelease: () -> Unit) {
+    var pressed by remember { mutableStateOf(false) }
+    val color = when {
+        !enabled -> MaterialTheme.colorScheme.surfaceVariant
+        pressed -> ZzColors.Horn
+        else -> ZzColors.Horn.copy(alpha = 0.75f)
+    }
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = color,
+        contentColor = if (enabled) androidx.compose.ui.graphics.Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(64.dp)
+            .pointerInput(enabled) {
+                if (!enabled) return@pointerInput
+                detectTapGestures(
+                    onPress = {
+                        pressed = true
+                        onPress()
+                        try {
+                            tryAwaitRelease()
+                        } finally {
+                            pressed = false
+                            onRelease()
+                        }
+                    },
+                )
+            },
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+            Text(
+                if (pressed) "TOETER KLINKT" else "TOETER · INGEDRUKT HOUDEN",
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                letterSpacing = 1.sp,
+            )
+        }
     }
 }
 
