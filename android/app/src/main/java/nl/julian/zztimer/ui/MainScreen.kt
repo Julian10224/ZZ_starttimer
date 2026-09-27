@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.selection.selectable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -108,6 +108,7 @@ fun MainScreen(vm: TimerViewModel, onOpenSettings: () -> Unit) {
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            val fullWidth = maxWidth
             val landscape = maxWidth > maxHeight && maxWidth >= 560.dp
             if (landscape) {
                 Row(Modifier.fillMaxSize()) {
@@ -119,7 +120,7 @@ fun MainScreen(vm: TimerViewModel, onOpenSettings: () -> Unit) {
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        TimerPanel(vm, status, connected, maxWidth / 2 - 32.dp)
+                        TimerPanel(vm, status, connected, fullWidth / 2 - 32.dp)
                     }
                     Column(
                         Modifier
@@ -141,7 +142,7 @@ fun MainScreen(vm: TimerViewModel, onOpenSettings: () -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    TimerPanel(vm, status, connected, maxWidth - 32.dp)
+                    TimerPanel(vm, status, connected, fullWidth - 32.dp)
                     Controls(vm, status, connected) { scheduleEdit = it }
                     Spacer(Modifier.height(8.dp))
                 }
