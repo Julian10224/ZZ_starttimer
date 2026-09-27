@@ -39,7 +39,19 @@ jobs:
       - name: APK bouwen
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon assembleRelease
+          set -o pipefail
+          ./gradlew --no-daemon assembleRelease 2>&1 | tee build.log
+
+      - name: Compileerfouten tonen
+        if: failure()
+        run: |
+          # Zet de belangrijkste foutregels als annotatie bij de run (zichtbaar in de samenvatting).
+          grep -E "^e: |^w: .*deprecated|What went wrong|^> |error:|Could not" build.log | grep -v "^w: " | head -60 > errors.txt || true
+          split -l 6 errors.txt part_ || true
+          for f in part_*; do
+            msg=$(sed ':a;N;$!ba;s/%/%25/g;s/\r//g;s/\n/%0A/g' "$f")
+            echo "::error::$msg"
+          done
 
       - name: Versie en bestandsnaam
         id: v
