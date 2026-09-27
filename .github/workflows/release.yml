@@ -70,6 +70,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.v.outputs.n }}
+          target_commitish: ${{ github.sha }}
           name: Timer ZZ V${{ steps.v.outputs.n }}
           body: |
             Firmware Timer ZZ versie ${{ steps.v.outputs.n }} voor ESP32 (board: ESP32 Dev Module, core ${{ env.ESP32_CORE }}).
