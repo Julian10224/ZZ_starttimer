@@ -2,9 +2,9 @@
 
 Firmware voor een ESP32-gestuurde starttimer met hoornrelais, twee displays en een handmatige hoornknop. De timer telt een startprocedure van 5 minuten af en geeft op vaste momenten automatisch een hoornsignaal via een relais (5:00, 4:00, 1:00 en 0:00 — hetzelfde ritme als een 5-4-1-0-startprocedure).
 
-Deze repository bevat alle zes ontwikkelversies. Elke versie staat in een eigen map én als eigen commit met tag (`v1` t/m `v6`) in de git-historie, zodat je de verschillen tussen versies direct kunt vergelijken.
+Deze repository bevat alle zeven ontwikkelversies. Elke versie staat in een eigen map én als eigen commit met tag (`v1` t/m `v7`) in de git-historie, zodat je de verschillen tussen versies direct kunt vergelijken.
 
-> **Aanbevolen versie: V6** (`firmware/Timer_ZZ_V6`). V1 en V2 compileren niet zonder aanpassing (zie [Bekende problemen](#bekende-problemen)).
+> **Laatste versie: V7** (`firmware/Timer_ZZ_V7`). V1 en V2 compileren niet zonder aanpassing (zie [Bekende problemen](#bekende-problemen)).
 
 ---
 
@@ -13,7 +13,7 @@ Deze repository bevat alle zes ontwikkelversies. Elke versie staat in een eigen 
 - [Repository-indeling](#repository-indeling)
 - [Hardware](#hardware)
 - [Pinout per versie](#pinout-per-versie)
-- [Werking (V6)](#werking-v6)
+- [Werking (V7)](#werking-v7)
 - [Opbouw van de code](#opbouw-van-de-code)
 - [Het schuifregister-display](#het-schuifregister-display)
 - [Versieoverzicht](#versieoverzicht)
@@ -34,10 +34,11 @@ timer-zz/
     ├── Timer_ZZ_V3/Timer_ZZ_V3.ino
     ├── Timer_ZZ_V4/Timer_ZZ_V4.ino
     ├── Timer_ZZ_V5/Timer_ZZ_V5.ino
-    └── Timer_ZZ_V6/Timer_ZZ_V6.ino
+    ├── Timer_ZZ_V6/Timer_ZZ_V6.ino
+    └── Timer_ZZ_V7/Timer_ZZ_V7.ino
 ```
 
-Elke versie staat in een map met dezelfde naam als het `.ino`-bestand; de Arduino IDE vereist dat. De code zelf is ongewijzigd ten opzichte van de originele bestanden — alleen de bestandsnamen zijn gelijkgetrokken (`Timer_ZZ.ino` → `Timer_ZZ_V1.ino`, `Timer_ZZV5.ino` → `Timer_ZZ_V5.ino`, `Timer_ZZV6.ino` → `Timer_ZZ_V6.ino`).
+Elke versie staat in een map met dezelfde naam als het `.ino`-bestand; de Arduino IDE vereist dat. De code zelf is ongewijzigd ten opzichte van de originele bestanden — alleen de bestandsnamen zijn gelijkgetrokken (`Timer_ZZ.ino` → `Timer_ZZ_V1.ino`, `Timer_ZZV5.ino` → `Timer_ZZ_V5.ino`, `Timer_ZZV6.ino` → `Timer_ZZ_V6.ino`, `Timer_ZZV7.ino` → `Timer_ZZ_V7.ino`).
 
 ---
 
@@ -52,9 +53,10 @@ Elke versie staat in een map met dezelfde naam als het `.ino`-bestand; de Arduin
 | Resetknop | Reset, slaapmodus aan/uit | V1 |
 | Handmatige hoornknop | Hoorn met de hand bedienen | V2 (V1: pin niet gedefinieerd) |
 | Schuifregister-display ("matrix board") | Groot 3-digit display `M.SS` via drie in serie geschakelde schuifregisters | V3 |
+| Tweede schuifregister-display | Tweede groot 3-digit display in dezelfde keten (zes registers in totaal), toont dezelfde tijd | V7 |
 | Enable-lijn matrix board | Schakelt het grote display aan (`HIGH`) of uit (`LOW`) | V3 |
 | Uitgang `horn_button` | Statussignaal dat aangeeft of de handmatige hoorn is toegestaan (vermoedelijk een LED in de hoornknop) | V3 |
-| Modusschakelaar `timer_switch` | Kiest tussen direct aftellen en eerst optellen | V3 |
+| Modusschakelaar `timer_switch` | V3: stoppunt optellen · V4–V6: direct aftellen of eerst optellen · V7: één keer of herhalen | V3 |
 
 Alle knoppen en de schakelaar gebruiken `INPUT_PULLUP`: ingedrukt / gesloten = `LOW`, los / open = `HIGH`.
 
@@ -69,7 +71,7 @@ Alle knoppen en de schakelaar gebruiken `INPUT_PULLUP`: ingedrukt / gesloten = `
 
 ## Pinout per versie
 
-| Functie | V1 | V2 | V3 | V4 | V5 – V6 |
+| Functie | V1 | V2 | V3 | V4 | V5 – V7 |
 |---|---|---|---|---|---|
 | TM1637 `CLK` | 18 | 18 | 18 | 18 | 18 |
 | TM1637 `DIO` | 19 | 19 | 19 | 19 | 19 |
@@ -90,37 +92,39 @@ Let op: in V5 zijn `horn_button` en `timer_switch` van pin gewisseld ten opzicht
 
 ---
 
-## Werking (V6)
+## Werking (V7)
 
 ### Modusschakelaar
 
-| `timer_switch` | Niveau | Beginstand | Verloop na start |
-|---|---|---|---|
-| Gesloten (naar GND) | `LOW` | `5:00` | Direct aftellen van 5:00 naar 0:00 |
-| Open | `HIGH` | `0:00` | Eerst optellen van 0:00 tot 4:00, daarna automatisch door naar de afteller vanaf 5:00 |
+De stand van `timer_switch` wordt ingelezen op het moment dat je op start drukt. De beginstand is altijd `5:00`.
 
-In rust volgt het display de schakelaar direct: omzetten verandert de beginstand meteen.
+| `timer_switch` | Niveau | Verloop |
+|---|---|---|
+| Gesloten (naar GND) | `LOW` | **Eén keer:** aftellen van 5:00 naar 0:00, daarna stoppen. `0:00` blijft 1 s staan, daarna springt het display terug naar `5:00`. |
+| Open | `HIGH` | **Herhalen:** na 0:00 gaat de timer direct verder vanaf `4:59`. Zo start er elke 5 minuten een nieuwe cyclus, tot je op reset drukt. |
+
+Let op: het commentaar bij `repeatMode` in de code zegt het omgekeerde (`LOW = eindeloos`). De code zelf doet `repeatMode = (digitalRead(timer_switch) == HIGH)`, dus **open = herhalen**. Bovenstaande tabel volgt de code.
 
 ### Hoornsignalen
 
 | Moment | Duur relais |
 |---|---|
-| Start (5:00) — of overgang optellen → aftellen | 0,5 s |
+| Start (5:00) | 0,5 s |
 | 4:00 | 0,5 s |
 | 1:00 | 1 s |
 | 0:00 | 1 s |
 
-Elk signaal wordt per procedure één keer gegeven (bijgehouden in `triggeredRelay[]`). Bij 0:00 stopt de timer.
+Elk signaal wordt per cyclus één keer gegeven (bijgehouden in `triggeredRelay[]`). In herhaalmodus is het signaal op 0:00 tegelijk het begin van de volgende cyclus; er komt dan geen apart 5:00-signaal, de volgende cyclus begint op `4:59`.
 
 ### Knoppen
 
 | Knop | Actie | Resultaat |
 |---|---|---|
 | Start | Kort indrukken in rust | Procedure start. Tijdens een lopende procedure of in slaapmodus wordt de knop genegeerd. |
-| Reset | Indrukken | Direct terug naar de beginstand, ook tijdens een lopende procedure. |
-| Reset | 3 s vasthouden (in rust) | Slaapmodus: beide displays uit. |
+| Reset | Indrukken | Direct terug naar `5:00`, ook tijdens een lopende procedure (ook de enige manier om de herhaalmodus te stoppen). |
+| Reset | 3 s vasthouden (in rust) | Slaapmodus: alle displays uit. |
 | Reset | Indrukken in slaapmodus (≥ 100 ms) | Displays weer aan, zonder reset. |
-| Handmatige hoorn | Vasthouden | Relais aan zolang de knop is ingedrukt — alleen toegestaan in rust en tijdens de eerste minuut van het aftellen (5:00 t/m 4:00). |
+| Handmatige hoorn | Vasthouden | Relais aan zolang de knop is ingedrukt — alleen toegestaan in rust en tijdens de eerste minuut van elke cyclus (5:00 t/m 4:00). |
 
 De uitgang `horn_button` is `LOW` wanneer de handmatige hoorn is toegestaan en `HIGH` wanneer hij geblokkeerd is.
 
@@ -128,18 +132,16 @@ De uitgang `horn_button` is `LOW` wanneer de handmatige hoorn is toegestaan en `
 
 - Handmatig: reset 3 s vasthouden terwijl de timer niet loopt.
 - Automatisch: na 6 minuten zonder activiteit (`360000` ms).
-- In slaapmodus zijn beide displays uit en is de enable-lijn van het grote display `LOW`. De handmatige hoorn blijft werken.
+- In slaapmodus zijn alle displays uit en is de enable-lijn van de grote displays `LOW`. De handmatige hoorn blijft werken.
 
 ### Toestandsdiagram
 
 ```mermaid
 stateDiagram-v2
     [*] --> Rust
-    Rust --> Optellen: Start (schakelaar open)
-    Rust --> Aftellen: Start (schakelaar dicht) / hoorn 0,5 s
-    Optellen --> Aftellen: 4:00 bereikt → 5:00 / hoorn 0,5 s
-    Aftellen --> Rust: 0:00 bereikt / hoorn 1 s
-    Optellen --> Rust: Reset
+    Rust --> Aftellen: Start / hoorn 0,5 s
+    Aftellen --> Aftellen: 0:00 → 4:59 (schakelaar open, herhalen) / hoorn 1 s op 0:00
+    Aftellen --> Rust: 0:00 bereikt (schakelaar dicht, één keer) / hoorn 1 s
     Aftellen --> Rust: Reset
     Rust --> Slaap: Reset 3 s vasthouden of 6 min inactief
     Slaap --> Rust: Reset indrukken
@@ -151,18 +153,22 @@ stateDiagram-v2
     end note
 ```
 
+### Verschil met V6
+
+V6 had in plaats van de herhaalmodus een optelmodus (eerst 0:00 → 4:00 optellen, dan aftellen vanaf 5:00). Die is in V7 vervallen. Zie [CHANGELOG.md](CHANGELOG.md).
+
 ---
 
 ## Opbouw van de code
 
 De firmware is volledig **niet-blokkerend**: er wordt nergens `delay()` gebruikt. Alles draait in `loop()` op basis van `millis()`-tijdstempels.
 
-### Belangrijkste variabelen (V6)
+### Belangrijkste variabelen (V7)
 
 | Variabele | Betekenis |
 |---|---|
 | `counting` | Timer loopt |
-| `countingUp` | `true` = optellen, `false` = aftellen |
+| `repeatMode` | `true` = herhalen na 0:00, `false` = één keer (gezet bij start) |
 | `minutes`, `seconds` | Huidige tijd |
 | `triggeredRelay[6]` | Per minuut (index 0–5): is het signaal al gegeven? |
 | `relayActive`, `relayStartMillis`, `relayDuration` | Automatisch relaissignaal en de duur ervan |
@@ -171,17 +177,18 @@ De firmware is volledig **niet-blokkerend**: er wordt nergens `delay()` gebruikt
 | `sleepMode`, `lastActiveMillis` | Slaapmodus en tijdstip van laatste activiteit |
 | `resetButtonHeld`, `resetPressStart`, `ignoreResetUntilRelease` | Vasthoud-detectie van de resetknop |
 
-### Volgorde in `loop()` (V6)
+### Volgorde in `loop()` (V7)
 
 1. **Knoppen inlezen** — `Bounce2`-objecten bijwerken; startknop op dalende flank.
 2. **Resetknop** — reset direct bij indrukken; vasthoudduur meten voor slaapmodus; na een slaap-overgang wordt de knop genegeerd tot hij is losgelaten.
 3. **Automatische slaap** na 6 minuten inactiviteit.
-4. **Start** — beginstand bepalen via `timer_switch`, signaal geven bij direct aftellen.
-5. **Reset** — alles terug naar de beginstand.
-6. **Seconde-tik** — tijd bijwerken, overgang optellen → aftellen, signalen op 5/4/1/0 minuten, displays verversen. `previousMillis += 1000` zorgt dat de timer niet wegloopt, ook als een loop-doorgang wat langer duurt.
-7. **Relais-timeout** — automatisch signaal uit na `relayDuration`.
-8. **Rustweergave** — beginstand volgt de schakelaar.
-9. **Relaisuitgang** — `relaisAan = (handmatig && toegestaan) || automatisch`; statusuitgang `horn_button` zetten.
+4. **Start** — tijd op 5:00, `repeatMode` inlezen van `timer_switch`, startsignaal geven.
+5. **Reset** — alles terug naar 5:00.
+6. **Signaalcontrole** — elke loop-doorgang (zolang de timer loopt) wordt gekeken of de huidige tijd 4:00, 1:00 of 0:00 is en het signaal nog niet gegeven is. In V6 gebeurde dit alleen direct na de seconde-tik.
+7. **Seconde-tik** — tijd één seconde terug; bij 0:00 verder vanaf 4:59 (herhalen, `triggeredRelay[]` gewist) of stoppen (één keer); displays verversen. `previousMillis += 1000` zorgt dat de timer niet wegloopt, ook als een loop-doorgang wat langer duurt.
+8. **Relais-timeout** — automatisch signaal uit na `relayDuration`.
+9. **Rustweergave** — display op 5:00.
+10. **Relaisuitgang** — `relaisAan = (handmatig && toegestaan) || automatisch`; statusuitgang `horn_button` zetten.
 
 ### Displays
 
@@ -204,6 +211,8 @@ De tabel `digits[10]` bevat de voorberekende byte voor elk cijfer 0–9. Omdat `
 
 Er worden drie cijfers getoond: minuten (`minutes % 10`), tientallen seconden en eenheden seconden. De volgorde waarin de bytes worden ingeschoven (eerst seconden-eenheden, als laatste de minuten) is afgestemd op de bedrading van het board.
 
+In V7 schuift `updateShiftRegisterDisplay()` dezelfde drie bytes twee keer in (zes bytes totaal), zodat twee grote displays in dezelfde keten dezelfde tijd tonen. `clearShiftRegisterDisplay()` wist ook zes registers.
+
 ---
 
 ## Versieoverzicht
@@ -216,11 +225,12 @@ Er worden drie cijfers getoond: minuten (`minutes % 10`), tientallen seconden en
 | **V4** | `Bounce2`-debouncing i.p.v. interrupts, slaapmodus, nieuwe modus: eerst optellen tot 4:00 en dan aftellen vanaf 5:00. Driftvrije tijdbasis. |
 | **V5** | Reset direct bij indrukken, handmatige hoorn ook toegestaan tussen 5:00 en 4:00, auto-slaap na 6 min, pinnen `horn_button`/`timer_switch` gewisseld. |
 | **V6** | Instelbare relaisduur: 0,5 s bij start en 4:00, 1 s bij 1:00 en 0:00. |
+| **V7** | Optelmodus vervangen door herhaalmodus (elke 5 min een nieuwe cyclus), tweede groot display, beginstand altijd 5:00, signaalcontrole elke loop-doorgang. |
 
 Zie [CHANGELOG.md](CHANGELOG.md) voor de volledige beschrijving per versie. Verschillen bekijken kan ook met git, bijvoorbeeld:
 
 ```bash
-git diff v5 v6 -- firmware/
+git diff v6 v7 -- firmware/
 ```
 
 ---
@@ -231,15 +241,15 @@ git diff v5 v6 -- firmware/
 2. Installeer via Bibliotheekbeheer:
    - **TM1637** (Avishay Orpaz)
    - **Bounce2** (nodig vanaf V4)
-3. Open `firmware/Timer_ZZ_V6/Timer_ZZ_V6.ino`.
+3. Open `firmware/Timer_ZZ_V7/Timer_ZZ_V7.ino`.
 4. Kies je ESP32-bord en poort, en upload.
 
 Met `arduino-cli`:
 
 ```bash
 arduino-cli lib install "TM1637" "Bounce2"
-arduino-cli compile --fqbn esp32:esp32:esp32 firmware/Timer_ZZ_V6
-arduino-cli upload  --fqbn esp32:esp32:esp32 -p <poort> firmware/Timer_ZZ_V6
+arduino-cli compile --fqbn esp32:esp32:esp32 firmware/Timer_ZZ_V7
+arduino-cli upload  --fqbn esp32:esp32:esp32 -p <poort> firmware/Timer_ZZ_V7
 ```
 
 Pas de `--fqbn` aan als je een ander ESP32-bord gebruikt.
@@ -265,9 +275,14 @@ Deze punten zijn gevonden door de code te lezen; de code is bewust niet aangepas
 - Knoppen via interrupts zonder debouncing.
 - `DP_ALWAYS_ON` is gedefinieerd maar wordt niet gebruikt (de decimale punt staat aan via de standaardwaarde van `dp`).
 
-### V4 – V6
-- Bij het bereiken van 0:00 zet de rustweergave het display in dezelfde loop-doorgang terug naar de beginstand, waardoor `0:00` vrijwel niet zichtbaar is.
+### V4 – V7
+- V4–V6: bij het bereiken van 0:00 zet de rustweergave het display in dezelfde loop-doorgang terug naar de beginstand, waardoor `0:00` vrijwel niet zichtbaar is.
 - In rust worden beide displays elke loop-doorgang opnieuw beschreven. Dit werkt, maar geeft continu bus-verkeer.
-- V5/V6: het commentaar noemt 5 minuten voor automatische slaap; de code gebruikt 360000 ms (6 minuten).
-- V5/V6: reset vasthouden tijdens een lopende procedure reset direct en zet het systeem na 3 s in slaapmodus.
+- V5–V7: het commentaar noemt 5 minuten voor automatische slaap; de code gebruikt 360000 ms (6 minuten).
+- V5–V7: reset vasthouden tijdens een lopende procedure reset direct en zet het systeem na 3 s in slaapmodus.
 - `volatile bool startPressed/resetPressed` zijn overblijfsels van de interruptversies; `volatile` is niet meer nodig.
+
+### V7
+- Het commentaar bij `repeatMode` (`LOW = eindeloos aftellen, HIGH = één keer`) is tegengesteld aan de code: `repeatMode = (digitalRead(timer_switch) == HIGH)`, dus open schakelaar (`HIGH`) = herhalen.
+- In herhaalmodus begint elke volgende cyclus op `4:59` in plaats van `5:00`; het signaal op 0:00 van de vorige cyclus fungeert als startsignaal.
+- De signaalcontrole draait elke loop-doorgang in plaats van één keer per seconde; dat werkt dankzij `triggeredRelay[]`, maar het resultaat is hetzelfde moment als in V6.

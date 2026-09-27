@@ -1,8 +1,21 @@
 # Changelog
 
-Alle wijzigingen per versie. De versies staan in `firmware/Timer_ZZ_Vx/` en als git-tags `v1` t/m `v6`.
+Alle wijzigingen per versie. De versies staan in `firmware/Timer_ZZ_Vx/` en als git-tags `v1` t/m `v7`.
 
 ---
+
+## V7 — herhaalmodus en tweede groot display
+
+- **Optelmodus vervallen** (`countingUp` verwijderd). De timer telt altijd af vanaf 5:00; ook de beginstand in rust is altijd 5:00.
+- **Nieuwe betekenis modusschakelaar** via `repeatMode`, ingelezen bij start:
+  - `HIGH` (open) → herhalen: na 0:00 direct verder vanaf 4:59, `triggeredRelay[]` wordt gewist, elke 5 minuten een nieuwe cyclus tot reset;
+  - `LOW` (dicht) → één keer: stoppen na 0:00.
+  - Het commentaar in de code zegt het omgekeerde; de beschrijving hierboven volgt de code.
+- **Signaalcontrole verplaatst** uit de seconde-tik naar een apart blok dat elke loop-doorgang draait zolang de timer loopt. Signaalduur ongewijzigd (0,5 s / 1 s).
+- `0:00` blijft bij de eenmalige modus 1 s zichtbaar, omdat de timer pas bij de volgende tik stopt.
+- **Tweede groot display:** `updateShiftRegisterDisplay()` schuift de drie cijfers twee keer in (zes registers); `clearShiftRegisterDisplay()` wist zes registers.
+- Handmatige hoorn toegestaan in rust en tijdens 5:00–4:00 van elke cyclus.
+- Pinout gelijk aan V5/V6.
 
 ## V6 — instelbare relaisduur
 
