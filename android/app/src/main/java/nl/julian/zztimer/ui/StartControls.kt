@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.MaterialTheme
@@ -34,18 +35,19 @@ fun StartControls(vm: TimerViewModel, connected: Boolean) {
     val settings by vm.flags.settings.collectAsStateWithLifecycle()
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        flagState.banner?.let { InstructionBanner(it, flagState.bannerUrgent) }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             BigButton(
                 text = "START",
                 color = ZzColors.Go,
-                enabled = connected && status != null && flagState.canStart,
+                enabled = flagState.canStart,
                 onClick = vm::start,
                 modifier = Modifier.weight(1f),
             )
             BigButton(
                 text = "STOP / RESET",
                 color = ZzColors.Stop,
-                enabled = connected && status != null,
+                enabled = true,
                 onClick = vm::reset,
                 modifier = Modifier.weight(1f),
             )
@@ -68,8 +70,16 @@ fun StartControls(vm: TimerViewModel, connected: Boolean) {
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f),
                 )
-                TextButton(onClick = vm.flags::cancelResume, enabled = connected) { Text("Annuleren") }
+                TextButton(onClick = vm.flags::cancelResume) { Text("Annuleren") }
             }
+        }
+
+        if (flagState.local) {
+            Text(
+                "Klok niet verbonden: START en RESET gelden voor de telefoon. Druk START/RESET van de klok op het aangegeven moment.",
+                style = MaterialTheme.typography.bodySmall,
+                color = ZzColors.Error,
+            )
         }
 
         if (connected && status != null && status?.ledPanel == false) {
@@ -79,6 +89,25 @@ fun StartControls(vm: TimerViewModel, connected: Boolean) {
                 color = ZzColors.Error,
             )
         }
+    }
+}
+
+/** Opvallende instructie, bijv. "DRUK NU OP START VAN DE KLOK". */
+@Composable
+fun InstructionBanner(text: String, urgent: Boolean) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = if (urgent) ZzColors.Horn else ZzColors.Horn.copy(alpha = 0.2f),
+        contentColor = if (urgent) androidx.compose.ui.graphics.Color.Black else ZzColors.Horn,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text,
+            fontWeight = FontWeight.Black,
+            fontSize = if (urgent) 22.sp else 17.sp,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = androidx.compose.ui.Modifier.padding(vertical = 14.dp, horizontal = 12.dp),
+        )
     }
 }
 

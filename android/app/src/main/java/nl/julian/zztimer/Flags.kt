@@ -88,6 +88,9 @@ data class FlagState(
     val canResume: Boolean = false,
     val resuming: Boolean = false,
     val running: Boolean = false,
+    val local: Boolean = false,          // klok niet verbonden: telefoon telt zelf
+    val banner: String? = null,          // instructie, bijv. "DRUK NU OP START VAN DE KLOK"
+    val bannerUrgent: Boolean = false,
 )
 
 object FlagLogic {

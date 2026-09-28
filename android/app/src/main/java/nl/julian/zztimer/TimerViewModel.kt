@@ -69,7 +69,7 @@ class TimerViewModel(app: Application) : AndroidViewModel(app) {
     fun start() = flags.start()
 
     /** STOP en RESET doen hetzelfde: terug naar 5:00, net als de resetknop. */
-    fun reset() = send("reset")
+    fun reset() = flags.reset()
 
     fun setLedPanel(on: Boolean) = send("led") { put("on", on) }
 

@@ -189,7 +189,10 @@ private fun rememberTick(periodMs: Long = 50): Long {
 private fun TimerPanel(vm: TimerViewModel, status: EspStatus?, connected: Boolean, width: Dp) {
     rememberTick()
     val phoneTime = TimeFormat.time(System.currentTimeMillis())
-    val race = TimerMath.raceText(status, vm.client.espNow())
+    val localFlags by vm.flags.state.collectAsStateWithLifecycle()
+    // Klok niet verbonden maar de vlaggen lopen op de telefoon: toon die tijd
+    val race = if (localFlags.local && (localFlags.running || localFlags.resuming)) localFlags.timeText
+               else TimerMath.raceText(status, vm.client.espNow())
     val digitSize = with(LocalDensity.current) { (width / 3.2f).toSp() }
     val panelOff = status != null && !status.ledPanel
 

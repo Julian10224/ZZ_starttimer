@@ -12,8 +12,9 @@ import kotlinx.coroutines.launch
 
 /**
  * Stuurt de vlaggenpagina: bepaalt welke vlaggen er staan, spreekt het aftellen uit en
- * voert terugroepen en uitstel uit. De tijd komt altijd van de ESP; deze klasse telt zelf
- * niet, zodat vlaggen, stem, display en hoorn altijd gelijk lopen.
+ * voert terugroepen en uitstel uit. Verbonden komt de tijd van de klok (ESP), zodat vlaggen,
+ * stem, display en hoorn gelijk lopen. Zonder verbinding telt de telefoon zelf en geeft aan
+ * wanneer START of RESET op de klok moet worden gedrukt.
  */
 class FlagController(
     app: Application,
@@ -33,8 +34,8 @@ class FlagController(
     val state: StateFlow<FlagState> = _state.asStateFlow()
 
     private var interrupt = Interrupt.NONE
-    private var xSinceEsp = 0L               // ESP-tijd waarop de X-vlag op ging
-    private var lastStartEsp: Long? = null   // ESP-tijd van de laatste start (0:00)
+    private var xSinceTl = 0L                // tijdlijn-tijd waarop de X-vlag op ging
+    private var lastStartTl: Long? = null    // tijdlijn-tijd van de laatste start (0:00)
     private var lastK = -1L
     private var wasRunning = false
     private var classOffset = 0              // eerste klasse van de lopende reeks
@@ -93,18 +94,114 @@ class FlagController(
         if (_settings.value.voice) voice.say(text)
     }
 
+    // ------------------------------------------------------------------ tijdlijn
+
+    /**
+     * Tijdlijn waar de vlaggen op lopen. Verbonden: de klok (ESP) is leidend. Niet
+     * verbonden: de telefoon telt zelf (telefoontijd, ms) en geeft aan wanneer START of
+     * RESET op de klok moet worden gedrukt.
+     */
+    private var local = false
+    private var localStart: Long? = null          // telefoontijd van START (5:00)
+    private var localRepeat = false
+    private var localPress: Long? = null          // telefoontijd van een door de app ingezette start
+    private var localPressManual = false          // bij die start moet START van de klok worden gedrukt
+    private var knownSchedules: List<Schedule> = emptyList()
+    private var doneSchedules = mutableSetOf<Long>()
+    private var banner: String? = null
+    private var bannerUrgent = false
+    private var bannerUntil = 0L
+
+    // laatste waarden, voor de acties
+    private var curNow = 0L
+    private var curStart = 0L
+    private var curRunning = false
+
+    private fun showBanner(text: String, urgent: Boolean, ms: Long) {
+        banner = text
+        bannerUrgent = urgent
+        bannerUntil = System.currentTimeMillis() + ms
+    }
+
     // ------------------------------------------------------------------ elke 50 ms
 
     private fun tick() {
         val s = client.status.value
-        val now = client.espNow()
+        val espNow = client.espNow()
         val set = _settings.value
-        if (s == null || now == null) {
-            _state.value = FlagState(phase = Phase.NO_CONNECTION)
-            return
+        val phoneNow = System.currentTimeMillis()
+        val conn = client.connected.value && s != null && espNow != null
+
+        if (s != null) {
+            knownSchedules = s.schedules
+            if (!local) localRepeat = if (s.running) s.repeat else s.switchRepeat
         }
 
-        val running = s.running
+        // Wisselen tussen klok en telefoon
+        if (conn && local) {
+            local = false
+            if (localStart != null && s?.running != true) {
+                scope.launch { message("Klok weer verbonden, maar de klok loopt niet. Vlaggen volgen nu de klok.") }
+            }
+            localStart = null
+            localPress = null
+            lastStartTl = null
+            lastK = -1
+            wasRunning = s?.running == true
+        } else if (!conn && !local) {
+            local = true
+            // Liep de klok? Dan loopt de telefoon naadloos verder vanaf dezelfde tijd.
+            val delta = if (espNow != null) phoneNow - espNow else 0L
+            localStart = if (s?.running == true && espNow != null) s.startMs + delta else null
+            lastStartTl = lastStartTl?.let { it + delta }
+            if (interrupt == Interrupt.INDIVIDUAL_RECALL) xSinceTl += delta
+            lastK = -1
+            doneSchedules.clear()
+        }
+
+        // Tijdlijn
+        val now: Long
+        val running: Boolean
+        val startMs: Long
+        val repeat: Boolean
+        val ledPanel: Boolean
+        if (!local) {
+            now = espNow!!
+            running = s!!.running
+            startMs = s.startMs
+            repeat = s.repeat
+            ledPanel = s.ledPanel
+        } else {
+            now = phoneNow
+            // Door de app ingezette start of geplande start bereikt?
+            val lp = localPress
+            if (localStart == null && lp != null && phoneNow >= lp) {
+                localStart = lp
+                localPress = null
+                if (localPressManual) showBanner("DRUK NU OP START VAN DE KLOK", true, 4000)
+            }
+            if (localStart == null) {
+                knownSchedules.firstOrNull { it.pressEpoch <= phoneNow && it.pressEpoch >= phoneNow - 2000 && it.pressEpoch !in doneSchedules }?.let {
+                    doneSchedules += it.pressEpoch
+                    localStart = it.pressEpoch
+                    showBanner("Geplande start: de klok start zelf", false, 4000)
+                }
+            }
+            // Eenmalige procedure afgelopen
+            val ls = localStart
+            if (ls != null && !localRepeat && now - ls >= 301_000L) {
+                lastStartTl = ls + 300_000L
+                localStart = null
+            }
+            running = localStart != null
+            startMs = localStart ?: 0L
+            repeat = localRepeat
+            ledPanel = true
+        }
+        curNow = now
+        curStart = startMs
+        curRunning = running
+
         if (running && !wasRunning) {
             // Nieuwe procedure gestart (knop, app, of geplande start na uitstel/terugroep)
             classOffset = pendingOffset ?: 0
@@ -117,77 +214,92 @@ class FlagController(
 
         var k = -1L
         if (running) {
-            val elapsed = now - s.startMs
+            val elapsed = now - startMs
             k = Math.floorDiv(elapsed, 1000L)
-            if (k >= 300) lastStartEsp = s.startMs + (k / 300) * 300_000L
+            if (k >= 300) lastStartTl = startMs + (k / 300) * 300_000L
 
             // Aankondigingen: iets vóór de seconde, zodat de stem gelijk valt met het display
             val kl = Math.floorDiv(elapsed + VOICE_LEAD_MS, 1000L)
             if (kl != lastK) {
                 if (lastK == -1L && kl <= 1L) {
                     // Waarschuwingssein al uitgesproken aan het eind van het aftellen? Dan niet herhalen.
-                    val alreadySpoken = System.currentTimeMillis() - warningSpokenAt < 3000
+                    val alreadySpoken = phoneNow - warningSpokenAt < 3000
                     for (kk in 0L..kl) {
                         if (kk == 0L && alreadySpoken) continue
-                        FlagLogic.announcement(kk, s.repeat, set, classOffset)?.let { speak(it) }
+                        FlagLogic.announcement(kk, repeat, set, classOffset)?.let { speak(it) }
                     }
                 } else if (kl == lastK + 1) {
-                    FlagLogic.announcement(kl, s.repeat, set, classOffset)?.let { speak(it) }
+                    FlagLogic.announcement(kl, repeat, set, classOffset)?.let { speak(it) }
                 }
                 lastK = kl
             }
         }
 
         // X-vlag gaat uiterlijk na 4 minuten neer
-        if (interrupt == Interrupt.INDIVIDUAL_RECALL && now - xSinceEsp >= FlagLogic.X_MAX_MS) {
+        if (interrupt == Interrupt.INDIVIDUAL_RECALL && now - xSinceTl >= FlagLogic.X_MAX_MS) {
             interrupt = Interrupt.NONE
             speak("X-vlag neer.")
         }
 
-        // Aftellen tot een geplande start (START-knop, hervatten na uitstel/terugroep of
-        // een geplande start uit de lijst): 30 s, dan 10 … 1 en het waarschuwingssein.
+        // Aftellen tot een start die eraan komt (START met aftellen, hervatten, geplande start)
         var pendingIn: Int? = null
+        var manual = false
         if (!running) {
-            val phoneNow = System.currentTimeMillis()
-            val press = nextPress(s, phoneNow)
+            val press = pendingPress(phoneNow)
             if (press != null) {
+                manual = local && press == localPress && localPressManual
                 pendingIn = ceilDiv(press - phoneNow, 1000L).toInt()
                 if (pendingIn > PENDING_WINDOW_S) pendingIn = null
                 val left = ceilDiv(press - (phoneNow + VOICE_LEAD_MS), 1000L).toInt()
                 if (left != lastPreSpoken) {
                     when {
                         left == 30 && set.every10s -> speak("Waarschuwingssein over dertig seconden.")
-                        left in 1..10 && set.countdownStart -> speak(FlagLogic.countWord(left))
+                        left in 1..10 && (set.countdownStart || manual) -> speak(FlagLogic.countWord(left))
                         left == 0 && lastPreSpoken in 1..3 -> {
-                            speak(FlagLogic.warningText(set.className(pendingOffset ?: 0)))
+                            val w = FlagLogic.warningText(set.className(pendingOffset ?: 0))
+                            speak(if (manual) "Druk nu op start. $w" else w)
                             warningSpokenAt = phoneNow
                         }
                     }
                     lastPreSpoken = left
+                }
+                if (manual && pendingIn in 0..10) {
+                    banner = "Druk bij 0 op START van de klok"
+                    bannerUrgent = false
+                    bannerUntil = phoneNow + 1000
                 }
             } else {
                 lastPreSpoken = Int.MIN_VALUE
             }
         }
 
-        _state.value = buildState(s, now, running, k, set, pendingIn)
+        if (phoneNow > bannerUntil) banner = null
+        _state.value = buildState(now, running, k, repeat, ledPanel, set, pendingIn)
     }
 
-    /** Eerstvolgende geplande start (telefoontijd), of null. */
-    private fun nextPress(s: EspStatus, phoneNow: Long): Long? =
-        s.schedules.asSequence().map { it.pressEpoch }.filter { it >= phoneNow - 1500 }.minOrNull()
+    /** Eerstvolgende start die eraan komt (telefoontijd), of null. */
+    private fun pendingPress(phoneNow: Long): Long? {
+        val fromSchedules = knownSchedules.asSequence().map { it.pressEpoch }
+            .filter { it >= phoneNow - 1500 && !(local && it in doneSchedules) }.minOrNull()
+        val lp = if (local) localPress else null
+        return listOfNotNull(fromSchedules, lp).minOrNull()
+    }
 
     private fun ceilDiv(a: Long, b: Long): Long = -Math.floorDiv(-a, b)
 
-    private fun sinceStart(now: Long): Long? = lastStartEsp?.let { now - it }
-
-    private fun buildState(s: EspStatus, now: Long, running: Boolean, k: Long, set: FlagSettings, pendingIn: Int?): FlagState {
-        val since = sinceStart(now)
+    private fun buildState(
+        now: Long, running: Boolean, k: Long, repeat: Boolean, ledPanel: Boolean,
+        set: FlagSettings, pendingIn: Int?,
+    ): FlagState {
+        val since = lastStartTl?.let { now - it }
         val justStarted = since != null && since in 0..FlagLogic.X_MAX_MS
         val base = FlagState(
             interrupt = interrupt,
             running = running,
-            canStart = !running && s.ledPanel && interrupt != Interrupt.POSTPONED && interrupt != Interrupt.GENERAL_RECALL &&
+            local = local,
+            banner = banner,
+            bannerUrgent = bannerUrgent,
+            canStart = !running && ledPanel && interrupt != Interrupt.POSTPONED && interrupt != Interrupt.GENERAL_RECALL &&
                 (pendingIn == null || pendingIn > 15) && !busy,
             canIndividualRecall = justStarted && interrupt == Interrupt.NONE && !busy,
             canGeneralRecall = justStarted && (interrupt == Interrupt.NONE || interrupt == Interrupt.INDIVIDUAL_RECALL) && !busy,
@@ -243,6 +355,7 @@ class FlagController(
     // ------------------------------------------------------------------ acties
 
     private suspend fun signals(count: Int) {
+        if (local) return                     // geen verbinding: de gebruiker geeft zelf het geluidssein
         repeat(count) { i ->
             hornOn()
             delay(1000)
@@ -281,35 +394,43 @@ class FlagController(
 
     /** START: 10 seconden aftellen, daarna start de timer met het waarschuwingssein. */
     fun startWithCountdown() = action {
-        val s = client.status.value
-        if (s == null) {
-            message("Geen verbinding met de timer.")
-            return@action
-        }
-        if (s.running) {
+        val phoneNow = System.currentTimeMillis()
+        if (curRunning) {
             message("De procedure loopt al.")
             return@action
         }
-        if (!s.ledPanel) {
-            message("LED-paneel staat uit. Zet het eerst aan.")
-            return@action
-        }
-        val phoneNow = System.currentTimeMillis()
-        val pending = nextPress(s, phoneNow)
+        val pending = pendingPress(phoneNow)
         if (pending != null && pending - phoneNow < 15_000L) {
             message("De start is al ingezet.")
             return@action
         }
-        val press = phoneNow + COUNTDOWN_MS
-        val err = planStart(press)
+        if (local) {
+            localPress = phoneNow + COUNTDOWN_MS
+            localPressManual = true
+            return@action
+        }
+        val s = client.status.value ?: return@action
+        if (!s.ledPanel) {
+            message("LED-paneel staat uit. Zet het eerst aan.")
+            return@action
+        }
+        val err = planStart(phoneNow + COUNTDOWN_MS)
         if (err != null) message(err)
     }
 
     /** START in de stand "Direct": de timer start meteen met het waarschuwingssein. */
     fun startDirect() = action {
-        val s = client.status.value
-        if (s == null) {
-            message("Geen verbinding met de timer.")
+        if (curRunning) {
+            message("De procedure loopt al.")
+            return@action
+        }
+        if (local) {
+            val phoneNow = System.currentTimeMillis()
+            localStart = phoneNow
+            localPress = null
+            showBanner("DRUK NU OP START VAN DE KLOK", true, 4000)
+            speak("Druk nu op start. " + FlagLogic.warningText(_settings.value.className(pendingOffset ?: 0)))
+            warningSpokenAt = phoneNow
             return@action
         }
         val ack = client.command("start")
@@ -321,14 +442,26 @@ class FlagController(
         if (_settings.value.countdownStart) startWithCountdown() else startDirect()
     }
 
+    /** STOP / RESET. Zonder verbinding stopt de telefoon en moet RESET op de klok. */
+    fun reset() = action {
+        if (local) {
+            localStart = null
+            localPress = null
+            showBanner("DRUK OP RESET VAN DE KLOK", true, 5000)
+            return@action
+        }
+        val ack = client.command("reset")
+        if (!ack.ok) message(ack.error ?: "Reset mislukt.")
+    }
+
     fun setCountdownStart(on: Boolean) = updateSettings(_settings.value.copy(countdownStart = on))
 
     /** X-vlag op met één geluidssein (RvW 29.1). */
     fun individualRecall() = action {
-        val now = client.espNow() ?: return@action
         interrupt = Interrupt.INDIVIDUAL_RECALL
-        xSinceEsp = now
+        xSinceTl = curNow
         speak("Individuele terugroep. X-vlag op.")
+        if (local) showBanner("Geef zelf 1 geluidssein", true, 5000)
         signals(1)
     }
 
@@ -338,56 +471,62 @@ class FlagController(
         speak("X-vlag neer.")
     }
 
+    /** Reset van de procedure bij terugroep/uitstel: klok via de app, of met de hand. */
+    private suspend fun stopProcedure(): Boolean {
+        if (local) {
+            localStart = null
+            localPress = null
+            return true
+        }
+        val ack = client.command("reset")
+        if (!ack.ok) message(ack.error ?: "Timer niet bereikbaar.")
+        return ack.ok
+    }
+
     /** Eerste vervangende op met twee geluidsseinen (RvW 29.2). De timer stopt. */
     fun generalRecall() = action {
-        val s = client.status.value ?: return@action
-        val startEsp = lastStartEsp ?: return@action
-        val recalledCycle = ((startEsp - s.startMs) / 300_000L - 1).toInt().coerceAtLeast(0)
-        pendingOffset = classOffset + recalledCycle
-        val ack = client.command("reset")
-        if (!ack.ok) {
-            message(ack.error ?: "Timer niet bereikbaar.")
-            return@action
-        }
+        val startTl = lastStartTl ?: return@action
+        val recalledCycle = ((startTl - curStart) / 300_000L - 1).toInt().coerceAtLeast(0)
+        pendingOffset = classOffset + if (curRunning) recalledCycle else 0
+        if (!stopProcedure()) return@action
         interrupt = Interrupt.GENERAL_RECALL
-        lastStartEsp = null
+        lastStartTl = null
         speak("Algemene terugroep. Eerste vervangende op.")
+        if (local) showBanner("DRUK OP RESET VAN DE KLOK · geef zelf 2 geluidsseinen", true, 6000)
         signals(2)
     }
 
-    /** Uitstelwimpel op met twee geluidsseinen (RvW 27.3 / Seinen). De timer stopt. */
+    /** Uitstelwimpel op met twee geluidsseinen. De timer stopt. */
     fun postpone() = action {
-        val s = client.status.value
-        val now = client.espNow()
-        if (s != null && now != null && s.running) {
-            pendingOffset = classOffset + FlagLogic.cycleForK(Math.floorDiv(now - s.startMs, 1000L))
-        } else {
-            pendingOffset = pendingOffset ?: 0
-        }
-        val ack = client.command("reset")
-        if (!ack.ok) {
-            message(ack.error ?: "Timer niet bereikbaar.")
-            return@action
-        }
+        pendingOffset = if (curRunning) classOffset + FlagLogic.cycleForK(Math.floorDiv(curNow - curStart, 1000L))
+                        else pendingOffset ?: 0
+        if (!stopProcedure()) return@action
         interrupt = Interrupt.POSTPONED
-        lastStartEsp = null
+        lastStartTl = null
         speak("Uitstel. Uitstelwimpel op.")
+        if (local) showBanner("DRUK OP RESET VAN DE KLOK · geef zelf 2 geluidsseinen", true, 6000)
         signals(2)
     }
 
     /**
-     * Uitstelwimpel of eerste vervangende neer met één geluidssein. De timer start het
-     * waarschuwingssein zelf één minuut later (geplande start op de ESP), ook als de app
-     * dan niet meer open is.
+     * Uitstelwimpel of eerste vervangende neer met één geluidssein. Het waarschuwingssein
+     * volgt één minuut later: verbonden plant de klok het zelf, anders telt de telefoon af
+     * en geeft aan wanneer START van de klok moet worden gedrukt.
      */
     fun resume() = action {
         val was = interrupt
         if (was != Interrupt.POSTPONED && was != Interrupt.GENERAL_RECALL) return@action
         val press = System.currentTimeMillis() + 60_000L
-        val err = planStart(press)
-        if (err != null) {
-            message(err)
-            return@action
+        if (local) {
+            localPress = press
+            localPressManual = true
+            showBanner("Geef zelf 1 geluidssein", true, 5000)
+        } else {
+            val err = planStart(press)
+            if (err != null) {
+                message(err)
+                return@action
+            }
         }
         interrupt = Interrupt.NONE
         speak(if (was == Interrupt.POSTPONED) "Uitstelwimpel neer. Waarschuwingssein over één minuut."
@@ -395,10 +534,17 @@ class FlagController(
         signals(1)
     }
 
-    /** Eerstvolgende geplande start annuleren (timer blijft stil). */
+    /** Eerstvolgende start annuleren (timer blijft stil). */
     fun cancelResume() = action {
+        val phoneNow = System.currentTimeMillis()
+        val press = pendingPress(phoneNow) ?: return@action
+        if (local) {
+            if (press == localPress) localPress = null else doneSchedules += press
+            pendingOffset = null
+            speak("Start geannuleerd.")
+            return@action
+        }
         val s = client.status.value ?: return@action
-        val press = nextPress(s, System.currentTimeMillis()) ?: return@action
         val sched = s.schedules.firstOrNull { it.pressEpoch == press } ?: return@action
         val ack = client.command("sched_del") { put("sched_id", sched.id) }
         if (!ack.ok) {

@@ -206,7 +206,24 @@ private fun ColumnScope.FlagDisplay(state: FlagState, connected: Boolean) {
         }
     }
     if (sub.isNotEmpty()) Text(sub, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    if (!connected) StatusText(false, "VERBONDEN", "GEEN VERBINDING", ZzColors.Ok, ZzColors.Error)
+    if (state.local) {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = ZzColors.Error.copy(alpha = 0.18f),
+            contentColor = ZzColors.Error,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("○ KLOK NIET VERBONDEN", fontWeight = FontWeight.Black, fontSize = 18.sp)
+                Text(
+                    "De vlaggen lopen op de telefoon. Druk START of RESET van de klok op het aangegeven moment; geluidsseinen geef je zelf.",
+                    textAlign = TextAlign.Center,
+                    fontSize = 13.sp,
+                )
+            }
+        }
+    }
+    state.banner?.let { InstructionBanner(it, state.bannerUrgent) }
 
     // Vlaggen
     Row(
@@ -240,11 +257,11 @@ private fun FlagControls(
     SectionCard("SEINEN") {
         when {
             state.interrupt == Interrupt.POSTPONED -> {
-                BigButton("UITSTELWIMPEL NEER", ZzColors.Horn, connected && state.canResume, vm.flags::resume, Modifier.fillMaxWidth())
+                BigButton("UITSTELWIMPEL NEER", ZzColors.Horn, state.canResume, vm.flags::resume, Modifier.fillMaxWidth())
                 Hint("1 geluidssein; de timer geeft 1 minuut later zelf het waarschuwingssein.")
             }
             state.interrupt == Interrupt.GENERAL_RECALL -> {
-                BigButton("EERSTE VERVANGENDE NEER", ZzColors.Horn, connected && state.canResume, vm.flags::resume, Modifier.fillMaxWidth())
+                BigButton("EERSTE VERVANGENDE NEER", ZzColors.Horn, state.canResume, vm.flags::resume, Modifier.fillMaxWidth())
                 Hint("1 geluidssein; de timer geeft 1 minuut later zelf het waarschuwingssein.")
             }
             else -> {
@@ -253,9 +270,9 @@ private fun FlagControls(
                         Text("X-vlag neer (alle boten terug)")
                     }
                 }
-                SignalButton("X", "Individuele terugroep", connected && state.canIndividualRecall) { onConfirm(Confirm.INDIVIDUAL) }
-                SignalButton("1e", "Algemene terugroep", connected && state.canGeneralRecall) { onConfirm(Confirm.GENERAL) }
-                SignalButton("AP", "Uitstel", connected && state.canPostpone) { onConfirm(Confirm.POSTPONE) }
+                SignalButton("X", "Individuele terugroep", state.canIndividualRecall) { onConfirm(Confirm.INDIVIDUAL) }
+                SignalButton("1e", "Algemene terugroep", state.canGeneralRecall) { onConfirm(Confirm.GENERAL) }
+                SignalButton("AP", "Uitstel", state.canPostpone) { onConfirm(Confirm.POSTPONE) }
                 Hint("Terugroepen kan tot 4 minuten na een start.")
             }
         }
