@@ -43,7 +43,7 @@ class FlagController(
     private var warningSpokenAt = 0L         // telefoontijd waarop het waarschuwingssein al is uitgesproken
     private var busy = false
 
-    fun start() {
+    fun startTicker() {
         scope.launch {
             while (isActive) {
                 tick()

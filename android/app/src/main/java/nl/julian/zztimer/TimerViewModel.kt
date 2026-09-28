@@ -54,7 +54,7 @@ class TimerViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         client.start()
-        flags.start()
+        flags.startTicker()
     }
 
     override fun onCleared() {
