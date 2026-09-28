@@ -34,7 +34,7 @@ Voor de "RJ45-D-4bits"-kaart heb ik geen datasheet of mapping kunnen vinden. De 
 
    Segmenten: a = boven, b = rechtsboven, c = rechtsonder, d = onder, e = linksonder, f = linksboven, g = midden, dp = punt.
 
-4. Vul de bitnummers in bij `SEG_BIT_A` … `SEG_BIT_DP`, in de testsketch én in `Timer_ZZ_V10`.
+4. Vul de bitnummers in bij `SEG_BIT_A` … `SEG_BIT_DP`, in de testsketch én in `Timer_ZZ_V10` / `Timer_ZZ_V11`.
 5. **Fase 3, cijfers:** 0 t/m 9 met de ingevulde mapping. Kloppen alle cijfers, dan is de mapping goed.
 6. **Fase 4:** alles aan, dan alles uit.
 
