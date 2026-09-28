@@ -37,20 +37,13 @@ Het statusbericht bevat drie extra velden (de app negeert ze nog):
 | `restored` | `true` als de toestand na een herstart is hersteld |
 | `heap_free` | Vrij werkgeheugen in bytes (moet over uren stabiel blijven) |
 
-## Testen
+## Geen seriële uitvoer
 
-Via de seriële monitor (USB, 115200 baud) kun je het herstel controleren:
-
-| Commando | Wat er gebeurt | Verwacht |
-|---|---|---|
-| `test-crash` | Forceert een crash | ESP herstart; het display toont binnen ongeveer een seconde weer de juiste tijd en de procedure loopt door. |
-| `test-hang` | Laat de timerlus vastlopen | Na 3 s herstart de watchdog de ESP; daarna als hierboven. |
-
-Doe dit tijdens een lopende procedure en vergelijk met een stopwatch: 0:00 moet nog steeds op 300 s na START vallen. Geef een test ook vlak voor 4:00 of 1:00, om te zien dat het hoornsignaal alsnog komt.
+V11 gebruikt de seriële poort niet: geen `Serial.begin()`, geen meldingen en geen testcommando's. Er gaat dus geen processortijd naar. De reden van de laatste herstart is zichtbaar via de app-status (`reset_reason`, `restored`).
 
 ## Grenzen
 
 - **Herstart duurt kort:** tijdens de herstart (ongeveer 0,5–1 s) staan de displays even stil en wordt er geen PWM-signaal naar het relais gestuurd. Wat het RC-relais dan doet (laatste stand vasthouden of uit), hangt af van het module. Controleer dat met `test-crash` terwijl de toeter klinkt.
 - **Tijd tijdens de herstart:** die wordt gemeten met de interne RTC-klok van de ESP32. Die is minder nauwkeurig dan het kristal, maar over een herstart van ongeveer een seconde is de afwijking hooguit enkele tientallen milliseconden.
 - **Stroomonderbreking:** software kan een stroomonderbreking niet opvangen. Gebruik een stabiele voeding en ontkoppel de hoorn goed van de ESP-voeding, zodat de hoorn geen spanningsdip op de ESP geeft.
-- **Niet op hardware getest:** V11 is gecompileerd (951 546 bytes, 72% flash) maar nog niet op hardware getest. Gebruik de testcommando's hierboven vóór een wedstrijd.
+- **Niet op hardware getest:** V11 is gecompileerd (937 122 bytes, 71% flash) maar nog niet op hardware getest. Het herstel na een crash is zonder testhaak niet bewust op te wekken; test vóór een wedstrijd in elk geval een volledige procedure met de app aan en uit, en laat de telefoon tijdens een procedure buiten bereik lopen.

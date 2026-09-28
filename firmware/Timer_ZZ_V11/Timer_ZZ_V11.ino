@@ -786,8 +786,6 @@ void netTask(void *) {
   webSocket.begin();
   webSocket.onEvent(onWsEvent);
   webSocket.enableHeartbeat(5000, 3000, 2);
-  Serial.printf("Timer ZZ %s - WiFi '%s' op %s:%d\n", FW_VERSION, apSsid.c_str(),
-                WiFi.softAPIP().toString().c_str(), WS_PORT);
 
   for (;;) {
     webSocket.loop();
@@ -872,32 +870,6 @@ void handleAppCommands() {
   }
 }
 
-// V11: testcommando's via de USB-seriële monitor (115200 baud), om het herstel te testen:
-//   test-crash  -> forceert een crash (herstart, procedure gaat verder)
-//   test-hang   -> laat de timerlus vastlopen (watchdog herstart na 3 s)
-void handleSerialTest() {
-  static char buf[16];
-  static uint8_t len = 0;
-  while (Serial.available()) {
-    char c = Serial.read();
-    if (c == '\n' || c == '\r') {
-      buf[len] = 0;
-      if (!strcmp(buf, "test-crash")) {
-        Serial.println("Test: crash");
-        Serial.flush();
-        abort();
-      } else if (!strcmp(buf, "test-hang")) {
-        Serial.println("Test: timer loopt vast, watchdog herstart binnen 3 s");
-        Serial.flush();
-        for (;;) {}
-      }
-      len = 0;
-    } else if (len < sizeof(buf) - 1) {
-      buf[len++] = c;
-    }
-  }
-}
-
 void publishSnapshot(bool relayOn, bool manualAllowed) {
   Snapshot s;
   memset(&s, 0, sizeof(s));
@@ -924,8 +896,6 @@ void setup() {
   // Hoorn eerst uit, vóór alles
   ledcAttach(RELAY_PIN, RELAY_PWM_FREQ_HZ, RELAY_PWM_BITS);
   setRelayOutput(false);
-
-  Serial.begin(115200);
 
   pinMode(BUTTON_START, INPUT_PULLUP);
   pinMode(BUTTON_RESET, INPUT_PULLUP);
@@ -958,8 +928,6 @@ void setup() {
     display.showNumberDecEx(minutes * 100 + seconds, 0b01000000, true);
     updateShiftRegisterDisplay(minutes, seconds);
   }
-  Serial.printf("Timer ZZ %s - herstart: %s%s\n", FW_VERSION, resetReasonText(resetReason),
-                stateRestored ? (counting ? ", procedure hersteld" : ", status hersteld") : "");
 
   // V11: watchdog alleen op de timerlus; het netwerk kan de ESP niet laten herstarten
   esp_task_wdt_config_t wdt = { TIMER_WDT_MS, 0, true };
@@ -978,7 +946,6 @@ void loop() {
   unsigned long currentMillis = millis();
 
   handleAppCommands();                  // V11: app-commando's uit de wachtrij
-  handleSerialTest();
 
   debouncedStart.update();
   debouncedReset.update();
