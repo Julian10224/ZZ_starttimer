@@ -53,14 +53,14 @@
 
 // === V10: segmentmapping van het matrixboard (RJ45-D-4bits-kaart) ===
 // Bitnummer (0-7) per segment. Bepaal deze met de sketch Timer_ZZ_Segmenttest.
-#define SEG_BIT_A   5
-#define SEG_BIT_B   6
-#define SEG_BIT_C   2
-#define SEG_BIT_D   1
-#define SEG_BIT_E   0
-#define SEG_BIT_F   4
-#define SEG_BIT_G   7
-#define SEG_BIT_DP  3
+#define SEG_BIT_A   1
+#define SEG_BIT_B   2
+#define SEG_BIT_C   6
+#define SEG_BIT_D   5
+#define SEG_BIT_E   4
+#define SEG_BIT_F   0
+#define SEG_BIT_G   3
+#define SEG_BIT_DP  7
 #define SEG_DP_AAN  1      // 1 = decimale punt altijd aan (zoals V3-V9), 0 = uit
 #define SEG_ACTIEF_HOOG 1  // 1 = segment brandt bij bit = 1; 0 = omgekeerd (bit = 0 brandt)
 

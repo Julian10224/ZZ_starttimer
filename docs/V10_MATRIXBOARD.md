@@ -15,7 +15,7 @@ Extra instellingen bovenaan de sketch:
 
 ## Mapping bepalen
 
-Voor de "RJ45-D-4bits"-kaart heb ik geen datasheet of mapping kunnen vinden. De standaardwaarden in V10 zijn daarom die van V3–V9. Bepaal de juiste mapping met de sketch **`firmware/Timer_ZZ_Segmenttest`**:
+Voor de "RJ45-D-4bits"-kaart heb ik geen datasheet of mapping kunnen vinden. V10 gebruikt nog de mapping van V3–V9; V11 en de testsketch gebruiken de gemeten mapping hieronder. Bepaal de juiste mapping met de sketch **`firmware/Timer_ZZ_Segmenttest`**:
 
 1. Upload `Timer_ZZ_Segmenttest` via de Arduino IDE. De test gebruikt de seriële poort niet; het kleine TM1637-display toont fase en stap, bijvoorbeeld `2-05`.
 2. **Fase 1, looplicht:** van links naar rechts (minuten, tientallen seconden, eenheden seconden), per digit bit 0 t/m 7. Het TM1637-display toont `1-db`: digit `d` (1 = links) en bit `b`. De eerst ingeschoven byte komt rechts terecht; de timer schuift daarom eerst de eenheden seconden in en als laatste de minuten.
@@ -23,14 +23,16 @@ Voor de "RJ45-D-4bits"-kaart heb ik geen datasheet of mapping kunnen vinden. De 
 
    | Bit | Segment |
    |---|---|
-   | 0 | |
-   | 1 | |
-   | 2 | |
-   | 3 | |
-   | 4 | |
-   | 5 | |
-   | 6 | |
-   | 7 | |
+   | 0 | f |
+   | 1 | a |
+   | 2 | b |
+   | 3 | g |
+   | 4 | e |
+   | 5 | d |
+   | 6 | c |
+   | 7 | dp (aangenomen) |
+
+   Dit is de gemeten mapping van de RJ45-D-4bits-kaart; hij staat in V11 en in de testsketch.
 
    Segmenten: a = boven, b = rechtsboven, c = rechtsonder, d = onder, e = linksonder, f = linksboven, g = midden, dp = punt.
 

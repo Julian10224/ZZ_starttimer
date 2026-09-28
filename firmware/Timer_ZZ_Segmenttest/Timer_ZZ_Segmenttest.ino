@@ -33,14 +33,14 @@
 #define STAP_MS       700  // duur per stap
 
 // === Mapping om te controleren in fase 3 (kopieer het resultaat naar Timer_ZZ_V10) ===
-#define SEG_BIT_A   5
-#define SEG_BIT_B   6
-#define SEG_BIT_C   2
-#define SEG_BIT_D   1
-#define SEG_BIT_E   0
-#define SEG_BIT_F   4
-#define SEG_BIT_G   7
-#define SEG_BIT_DP  3
+#define SEG_BIT_A   1
+#define SEG_BIT_B   2
+#define SEG_BIT_C   6
+#define SEG_BIT_D   5
+#define SEG_BIT_E   4
+#define SEG_BIT_F   0
+#define SEG_BIT_G   3
+#define SEG_BIT_DP  7
 #define SEG_ACTIEF_HOOG 1
 
 TM1637Display display(CLK, DIO);
