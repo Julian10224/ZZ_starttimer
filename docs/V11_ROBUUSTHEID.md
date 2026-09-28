@@ -43,7 +43,7 @@ V11 gebruikt de seriële poort niet: geen `Serial.begin()`, geen meldingen en ge
 
 ## Grenzen
 
-- **Herstart duurt kort:** tijdens de herstart (ongeveer 0,5–1 s) staan de displays even stil en wordt er geen PWM-signaal naar het relais gestuurd. Wat het RC-relais dan doet (laatste stand vasthouden of uit), hangt af van het module. Controleer dat met `test-crash` terwijl de toeter klinkt.
+- **Herstart duurt kort:** tijdens de herstart (ongeveer 0,5–1 s) staan de displays even stil en wordt er geen PWM-signaal naar het relais gestuurd. Wat het RC-relais dan doet (laatste stand vasthouden of uit), hangt af van het module. Controleer dat bij het aanzetten van de timer: klinkt de hoorn dan even, dan houdt het module zonder signaal de laatste stand vast.
 - **Tijd tijdens de herstart:** die wordt gemeten met de interne RTC-klok van de ESP32. Die is minder nauwkeurig dan het kristal, maar over een herstart van ongeveer een seconde is de afwijking hooguit enkele tientallen milliseconden.
 - **Stroomonderbreking:** software kan een stroomonderbreking niet opvangen. Gebruik een stabiele voeding en ontkoppel de hoorn goed van de ESP-voeding, zodat de hoorn geen spanningsdip op de ESP geeft.
 - **Niet op hardware getest:** V11 is gecompileerd (937 122 bytes, 71% flash) maar nog niet op hardware getest. Het herstel na een crash is zonder testhaak niet bewust op te wekken; test vóór een wedstrijd in elk geval een volledige procedure met de app aan en uit, en laat de telefoon tijdens een procedure buiten bereik lopen.
