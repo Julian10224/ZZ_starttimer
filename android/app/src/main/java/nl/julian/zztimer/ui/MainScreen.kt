@@ -3,6 +3,7 @@ package nl.julian.zztimer.ui
 import android.os.SystemClock
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -305,8 +306,20 @@ internal fun ScheduleSection(
 ) {
     SectionCard("GEPLANDE STARTS") {
         // Starts die de app zelf plant (10 s aftellen, hervatten) staan bij de START-knop
-        val schedules = status?.schedules.orEmpty().filter { it.pressEpoch !in vm.client.silentTargets }
-        if (status != null && !status.timeSynced) {
+        val phone by vm.flags.phoneSchedules.collectAsStateWithLifecycle()
+        val onClock = status?.schedules.orEmpty().filter { it.pressEpoch !in vm.client.silentTargets }
+        val now = System.currentTimeMillis()
+        val schedules = (onClock.map { it to true } + phone.map { it to false })
+            .filter { it.first.pressEpoch >= now - 2000 }
+            .sortedBy { it.first.pressEpoch }
+        if (!connected) {
+            Text(
+                "Klok niet verbonden: nieuwe starts worden alleen op de telefoon gepland.",
+                style = MaterialTheme.typography.bodySmall,
+                color = ZzColors.Error,
+            )
+        }
+        if (connected && status != null && !status.timeSynced) {
             Text(
                 "De klok van de timer wordt gesynchroniseerd met deze telefoon…",
                 style = MaterialTheme.typography.bodySmall,
@@ -316,15 +329,18 @@ internal fun ScheduleSection(
         if (schedules.isEmpty()) {
             Text("Geen geplande starts.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        schedules.forEach { s ->
+        schedules.forEach { (s, clock) ->
             ScheduleRow(
                 s,
-                enabled = connected,
+                onClock = clock,
+                connected = connected,
+                enabled = if (clock) connected else true,
                 onEdit = {
                     val t = Instant.ofEpochMilli(s.targetEpoch).atZone(ZoneId.systemDefault()).toLocalTime()
                     onEditSchedule(ScheduleInput(s.id, t.hour, t.minute, s.kind))
                 },
                 onDelete = { vm.deleteSchedule(s.id) },
+                onMoveToClock = { vm.flags.moveToClock(s) },
             )
         }
         OutlinedButton(
@@ -332,16 +348,16 @@ internal fun ScheduleSection(
                 val t = LocalTime.now().plusMinutes(10)
                 onEditSchedule(ScheduleInput(null, t.hour, t.minute, 0))
             },
-            enabled = connected && status != null,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Icon(Icons.Filled.Add, contentDescription = null)
             Spacer(Modifier.width(8.dp))
-            Text("Geplande start toevoegen")
+            Text(if (connected) "Geplande start toevoegen (op de klok)" else "Geplande start toevoegen (telefoon)")
         }
         Text(
-            "De timer voert geplande starts zelf uit, ook als de app gesloten is. " +
-                "Na een stroomonderbreking moet de app één keer verbinden om de klok te synchroniseren.",
+            "● Op de klok: de klok start zelf, ook als de app dicht is. " +
+                "○ Alleen telefoon: de app telt af en zegt wanneer je START van de klok drukt; is de klok dan verbonden, dan start de app hem. " +
+                "Zet een telefoonstart met \"Op klok zetten\" op de klok zodra die verbonden is.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -406,7 +422,15 @@ private fun ModeChip(label: String, selected: Boolean, modifier: Modifier = Modi
 }
 
 @Composable
-private fun ScheduleRow(s: Schedule, enabled: Boolean, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun ScheduleRow(
+    s: Schedule,
+    onClock: Boolean,
+    connected: Boolean,
+    enabled: Boolean,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onMoveToClock: () -> Unit,
+) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(
@@ -420,6 +444,24 @@ private fun ScheduleRow(s: Schedule, enabled: Boolean, onEdit: () -> Unit, onDel
             else
                 "Procedure start · startschot ${TimeFormat.time(s.pressEpoch + 300_000)}"
             Text("${TimeFormat.dayLabel(s.targetEpoch)} · $what", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (onClock) {
+                Text(
+                    if (connected) "● Op de klok · start zelf" else "● Op de klok · start zelf (laatst bekend)",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ZzColors.Ok,
+                    fontWeight = FontWeight.Bold,
+                )
+            } else {
+                Text(
+                    "○ Alleen telefoon · druk zelf START van de klok",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ZzColors.Error,
+                    fontWeight = FontWeight.Bold,
+                )
+                if (connected) {
+                    TextButton(onClick = onMoveToClock, contentPadding = PaddingValues(0.dp)) { Text("Op klok zetten") }
+                }
+            }
             val until = s.pressEpoch - System.currentTimeMillis()
             if (until in 0..3_600_000L) {
                 Text(

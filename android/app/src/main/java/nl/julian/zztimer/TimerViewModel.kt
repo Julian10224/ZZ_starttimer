@@ -120,6 +120,13 @@ class TimerViewModel(app: Application) : AndroidViewModel(app) {
         val targetMs = target.toInstant().toEpochMilli()
         val pressMs = press.toInstant().toEpochMilli()
 
+        // Geen verbinding met de klok, of een bestaande telefoonstart: op de telefoon plannen
+        if (!client.connected.value || (input.id != null && input.id < 0)) {
+            flags.savePhoneSchedule(input.id, pressMs, targetMs, input.kind)
+            _messages.emit("Gepland op de telefoon: ${TimeFormat.dayLabel(targetMs)} ${TimeFormat.time(targetMs)}. Druk dan zelf START van de klok.")
+            return null
+        }
+
         if (status.value?.timeSynced != true) client.syncClock()
 
         val ack = client.command(if (input.id == null) "sched_add" else "sched_edit") {
@@ -133,7 +140,9 @@ class TimerViewModel(app: Application) : AndroidViewModel(app) {
         return null
     }
 
-    fun deleteSchedule(id: Long) = send("sched_del") { put("sched_id", id) }
+    fun deleteSchedule(id: Long) {
+        if (id < 0) flags.deletePhoneSchedule(id) else send("sched_del") { put("sched_id", id) }
+    }
 
     // ------------------------------------------------------------------ instellingen
 

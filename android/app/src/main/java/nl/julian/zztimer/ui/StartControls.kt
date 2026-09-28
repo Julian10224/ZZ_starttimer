@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -58,8 +59,17 @@ fun StartControls(vm: TimerViewModel, connected: Boolean) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            StartModeOption("10 s aftellen", settings.countdownStart, Modifier.weight(1f)) { vm.flags.setCountdownStart(true) }
-            StartModeOption("Direct", !settings.countdownStart, Modifier.weight(1f)) { vm.flags.setCountdownStart(false) }
+            // Niet wijzigen terwijl de procedure loopt of een start eraan komt
+            val locked = flagState.running || flagState.resuming
+            StartModeOption("10 s aftellen", settings.countdownStart, !locked, Modifier.weight(1f)) { vm.flags.setCountdownStart(true) }
+            StartModeOption("Direct", !settings.countdownStart, !locked, Modifier.weight(1f)) { vm.flags.setCountdownStart(false) }
+        }
+        if (flagState.running || flagState.resuming) {
+            Text(
+                "Keuze vergrendeld tot de procedure is afgelopen of gestopt.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
 
         if (flagState.resuming) {
@@ -112,14 +122,15 @@ fun InstructionBanner(text: String, urgent: Boolean) {
 }
 
 @Composable
-private fun StartModeOption(label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+private fun StartModeOption(label: String, selected: Boolean, enabled: Boolean, modifier: Modifier, onClick: () -> Unit) {
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
         contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier
             .height(44.dp)
-            .clickable(role = Role.RadioButton, onClick = onClick),
+            .alpha(if (enabled) 1f else 0.5f)
+            .clickable(enabled = enabled, role = Role.RadioButton, onClick = onClick),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
             Text(

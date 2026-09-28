@@ -33,6 +33,13 @@ class FlagController(
     private val _state = MutableStateFlow(FlagState())
     val state: StateFlow<FlagState> = _state.asStateFlow()
 
+    /**
+     * Starts die alleen op de telefoon staan (gepland zonder verbinding met de klok).
+     * Negatieve id's, zodat ze nooit met starts op de klok verward worden.
+     */
+    private val _phoneSchedules = MutableStateFlow(loadPhoneSchedules())
+    val phoneSchedules: StateFlow<List<Schedule>> = _phoneSchedules.asStateFlow()
+
     private var interrupt = Interrupt.NONE
     private var xSinceTl = 0L                // tijdlijn-tijd waarop de X-vlag op ging
     private var lastStartTl: Long? = null    // tijdlijn-tijd van de laatste start (0:00)
@@ -86,6 +93,48 @@ class FlagController(
             .putBoolean(K_COUNTDOWN, s.countdownStart)
             .putString(K_CLASS_COLOR, s.classColor.name)
             .apply()
+    }
+
+    private fun loadPhoneSchedules(): List<Schedule> = runCatching {
+        val arr = org.json.JSONArray(prefs.getString(K_PHONE_SCHED, "[]"))
+        (0 until arr.length()).map { i ->
+            val o = arr.getJSONObject(i)
+            Schedule(o.getLong("id"), o.getLong("press"), o.getLong("target"), o.getInt("kind"))
+        }.sortedBy { it.pressEpoch }
+    }.getOrDefault(emptyList())
+
+    private fun setPhoneSchedules(list: List<Schedule>) {
+        val sorted = list.sortedBy { it.pressEpoch }
+        _phoneSchedules.value = sorted
+        val arr = org.json.JSONArray()
+        sorted.forEach {
+            arr.put(org.json.JSONObject().put("id", it.id).put("press", it.pressEpoch).put("target", it.targetEpoch).put("kind", it.kind))
+        }
+        prefs.edit().putString(K_PHONE_SCHED, arr.toString()).apply()
+    }
+
+    fun savePhoneSchedule(id: Long?, press: Long, target: Long, kind: Int) {
+        val keep = _phoneSchedules.value.filter { it.id != id }
+        val newId = if (id != null && id < 0) id else -(System.currentTimeMillis())
+        setPhoneSchedules(keep + Schedule(newId, press, target, kind))
+    }
+
+    fun deletePhoneSchedule(id: Long) = setPhoneSchedules(_phoneSchedules.value.filter { it.id != id })
+
+    /** Telefoonstart overzetten naar de klok, zodat de klok hem zelf uitvoert. */
+    fun moveToClock(s: Schedule) = action {
+        if (client.status.value?.timeSynced != true) client.syncClock()
+        val ack = client.command("sched_add") {
+            put("press_epoch", s.pressEpoch)
+            put("target_epoch", s.targetEpoch)
+            put("kind", s.kind)
+        }
+        if (!ack.ok) {
+            message(ack.error ?: "Op de klok zetten mislukt.")
+            return@action
+        }
+        deletePhoneSchedule(s.id)
+        message("Start ${TimeFormat.time(s.targetEpoch)} staat nu op de klok.")
     }
 
     fun testVoice() = voice.say("Dit is de stem van de ZZ Wedstrijd Timer. Tien, negen, acht.")
@@ -157,6 +206,28 @@ class FlagController(
             if (interrupt == Interrupt.INDIVIDUAL_RECALL) xSinceTl += delta
             lastK = -1
             doneSchedules.clear()
+        }
+
+        // Telefoonstarts uitvoeren
+        _phoneSchedules.value.firstOrNull { it.pressEpoch <= phoneNow }?.let { due ->
+            deletePhoneSchedule(due.id)
+            val late = phoneNow - due.pressEpoch > 2000
+            val busyNow = if (local) localStart != null else s?.running == true
+            when {
+                late || busyNow -> scope.launch {
+                    message("Telefoonstart ${TimeFormat.time(due.targetEpoch)} overgeslagen: " +
+                        if (late) "tijdstip gemist." else "er liep al een procedure.")
+                }
+                local -> {
+                    localStart = due.pressEpoch
+                    showBanner("DRUK NU OP START VAN DE KLOK", true, 4000)
+                }
+                else -> scope.launch {
+                    // Verbonden: de app geeft de start aan de klok
+                    val ack = client.command("start")
+                    if (!ack.ok) message(ack.error ?: "Starten mislukt.")
+                }
+            }
         }
 
         // Tijdlijn
@@ -247,7 +318,8 @@ class FlagController(
         if (!running) {
             val press = pendingPress(phoneNow)
             if (press != null) {
-                manual = local && press == localPress && localPressManual
+                manual = local && ((press == localPress && localPressManual) ||
+                    _phoneSchedules.value.any { it.pressEpoch == press })
                 pendingIn = ceilDiv(press - phoneNow, 1000L).toInt()
                 if (pendingIn > PENDING_WINDOW_S) pendingIn = null
                 val left = ceilDiv(press - (phoneNow + VOICE_LEAD_MS), 1000L).toInt()
@@ -281,8 +353,9 @@ class FlagController(
     private fun pendingPress(phoneNow: Long): Long? {
         val fromSchedules = knownSchedules.asSequence().map { it.pressEpoch }
             .filter { it >= phoneNow - 1500 && !(local && it in doneSchedules) }.minOrNull()
+        val fromPhone = _phoneSchedules.value.firstOrNull { it.pressEpoch >= phoneNow - 1500 }?.pressEpoch
         val lp = if (local) localPress else null
-        return listOfNotNull(fromSchedules, lp).minOrNull()
+        return listOfNotNull(fromSchedules, fromPhone, lp).minOrNull()
     }
 
     private fun ceilDiv(a: Long, b: Long): Long = -Math.floorDiv(-a, b)
@@ -454,7 +527,12 @@ class FlagController(
         if (!ack.ok) message(ack.error ?: "Reset mislukt.")
     }
 
-    fun setCountdownStart(on: Boolean) = updateSettings(_settings.value.copy(countdownStart = on))
+    /** Keuze 10 s aftellen / direct; vergrendeld zolang de procedure loopt of een start eraan komt. */
+    fun setCountdownStart(on: Boolean) {
+        val st = _state.value
+        if (st.running || st.resuming) return
+        updateSettings(_settings.value.copy(countdownStart = on))
+    }
 
     /** X-vlag op met één geluidssein (RvW 29.1). */
     fun individualRecall() = action {
@@ -538,6 +616,11 @@ class FlagController(
     fun cancelResume() = action {
         val phoneNow = System.currentTimeMillis()
         val press = pendingPress(phoneNow) ?: return@action
+        _phoneSchedules.value.firstOrNull { it.pressEpoch == press }?.let {
+            deletePhoneSchedule(it.id)
+            speak("Start geannuleerd.")
+            return@action
+        }
         if (local) {
             if (press == localPress) localPress = null else doneSchedules += press
             pendingOffset = null
@@ -568,5 +651,6 @@ class FlagController(
         private const val K_LAST10 = "voice_last10"
         private const val K_COUNTDOWN = "start_countdown"
         private const val K_CLASS_COLOR = "class_color"
+        private const val K_PHONE_SCHED = "phone_schedules"
     }
 }
