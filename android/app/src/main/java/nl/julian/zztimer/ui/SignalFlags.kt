@@ -1,15 +1,21 @@
 package nl.julian.zztimer.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -20,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -27,7 +34,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import nl.julian.zztimer.FlagKind
+import nl.julian.zztimer.FlagLogic
 import nl.julian.zztimer.ShownFlag
+import nl.julian.zztimer.UpcomingFlag
 
 /**
  * Internationale seinvlaggen, in dezelfde vormen, verhoudingen en kleuren als in Start Timer:
@@ -213,5 +222,80 @@ fun NoFlags(height: Dp) {
         contentAlignment = Alignment.Center,
     ) {
         Text("Geen vlaggen", color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+    }
+}
+
+/**
+ * Vlag die eraan komt: vlag, "▲ OP" of "▼ NEER" en de tijd tot dat moment. [main] is de
+ * grote kaart "VOLGENDE"; de kleinere kaart is "DAARNA". In de laatste 10 s licht de
+ * grote kaart op.
+ */
+@Composable
+fun UpcomingCard(item: UpcomingFlag, main: Boolean, modifier: Modifier = Modifier) {
+    val soon = main && item.inSeconds <= 10
+    val dirColor = if (item.up) ZzColors.Ok else ZzColors.Horn
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = if (soon) ZzColors.Horn.copy(alpha = 0.22f) else MaterialTheme.colorScheme.surfaceVariant,
+        border = if (soon) BorderStroke(2.dp, ZzColors.Horn) else null,
+        modifier = modifier,
+    ) {
+        Column(Modifier.padding(10.dp)) {
+            Text(
+                if (main) "VOLGENDE" else "DAARNA",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                letterSpacing = 1.5.sp,
+            )
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
+                SignalFlag(item.flag, if (main) 56.dp else 38.dp)
+                Column(Modifier.padding(start = 10.dp)) {
+                    Text(
+                        item.flag.label,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = if (main) 16.sp else 13.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        if (item.up) "▲ OP" else "▼ NEER",
+                        color = dirColor,
+                        fontWeight = FontWeight.Black,
+                        fontSize = if (main) 15.sp else 12.sp,
+                    )
+                    Text(
+                        "over ${FlagLogic.mmss(item.inSeconds)}",
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = if (main) FontWeight.Bold else FontWeight.Medium,
+                        fontSize = if (main) 20.sp else 14.sp,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** "VOLGENDE" en "DAARNA" naast elkaar. */
+@Composable
+fun UpcomingFlags(items: List<UpcomingFlag>, modifier: Modifier = Modifier) {
+    if (items.isEmpty()) return
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        UpcomingCard(items[0], main = true, modifier = Modifier.weight(1.25f))
+        if (items.size > 1) UpcomingCard(items[1], main = false, modifier = Modifier.weight(1f))
+        else Spacer(Modifier.weight(1f))
+    }
+}
+
+/** Compacte regel voor de Timer-pagina: kleine vlag + "P-vlag op over 0:45". */
+@Composable
+fun UpcomingLine(item: UpcomingFlag) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+        Text("Volgende vlag: ", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        SignalFlag(item.flag, 22.dp)
+        Text(
+            "  ${item.flag.label} ${if (item.up) "▲ op" else "▼ neer"} over ${FlagLogic.mmss(item.inSeconds)}",
+            fontWeight = FontWeight.Bold,
+            color = if (item.inSeconds <= 10) ZzColors.Horn else MaterialTheme.colorScheme.onSurface,
+        )
     }
 }

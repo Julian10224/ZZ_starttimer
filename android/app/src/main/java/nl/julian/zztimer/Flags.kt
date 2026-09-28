@@ -70,6 +70,11 @@ data class FlagSettings(
     }
 }
 
+/** Een vlag die straks op of neer gaat. */
+data class UpcomingFlag(val flag: ShownFlag, val up: Boolean, val inSeconds: Int) {
+    val text: String get() = "${flag.label} ${if (up) "op" else "neer"}"
+}
+
 data class ShownFlag(val kind: FlagKind, val label: String, val classColor: ClassColor = ClassColor.WHITE)
 
 data class FlagState(
@@ -91,6 +96,7 @@ data class FlagState(
     val local: Boolean = false,          // klok niet verbonden: telefoon telt zelf
     val banner: String? = null,          // instructie, bijv. "DRUK NU OP START VAN DE KLOK"
     val bannerUrgent: Boolean = false,
+    val upcoming: List<UpcomingFlag> = emptyList(),  // volgende en daarna
 )
 
 object FlagLogic {
@@ -112,6 +118,32 @@ object FlagLogic {
         20 -> "twintig"; 30 -> "dertig"; 40 -> "veertig"; 50 -> "vijftig"
         else -> n.toString()
     }
+
+    fun cap(t: String): String = t.replaceFirstChar { it.uppercase() }
+
+    /** Aankondiging 10 s vóór het waarschuwingssein. */
+    fun warningIn10(className: String): String = "${cap(classSpoken(className))} op over tien seconden."
+
+    /**
+     * Vlaggen die nog op of neer gaan, in volgorde (voor "Volgende" en "Daarna").
+     * [rem] = resterende seconden van de lopende procedure.
+     */
+    fun upcomingRunning(rem: Int, cls: String, nextCls: String?, s: FlagSettings): List<UpcomingFlag> {
+        val prep = ShownFlag(s.prep.kind(), s.prep.label)
+        val c = ShownFlag(FlagKind.CLASS, cls, s.classColor)
+        val list = mutableListOf<UpcomingFlag>()
+        if (rem > PREP_UP) list += UpcomingFlag(prep, true, rem - PREP_UP)
+        if (rem > PREP_DOWN) list += UpcomingFlag(prep, false, rem - PREP_DOWN)
+        if (rem > 0) list += UpcomingFlag(c, false, rem)
+        if (nextCls != null && rem > 0) list += UpcomingFlag(ShownFlag(FlagKind.CLASS, nextCls, s.classColor), true, rem)
+        return list
+    }
+
+    /** Vlaggen vóór een start die eraan komt (over [inSeconds] seconden). */
+    fun upcomingPending(inSeconds: Int, cls: String, s: FlagSettings): List<UpcomingFlag> = listOf(
+        UpcomingFlag(ShownFlag(FlagKind.CLASS, cls, s.classColor), true, inSeconds),
+        UpcomingFlag(ShownFlag(s.prep.kind(), s.prep.label), true, inSeconds + 60),
+    )
 
     /** Eén woord uit het aftellen: "Tien." … "Eén." */
     fun countWord(n: Int): String = words(n).replaceFirstChar { it.uppercase() } + "."
@@ -140,12 +172,20 @@ object FlagLogic {
             }
             rem == PREP_UP -> "Voorbereidingssein. ${s.prep.spoken.replaceFirstChar { it.uppercase() }} op. Nog vier minuten."
             rem == PREP_DOWN -> "Nog één minuut. ${s.prep.spoken.replaceFirstChar { it.uppercase() }} neer."
-            // 10 seconden aftellen vóór het voorbereidingssein (4:00) en vóór 1:00
-            rem in (PREP_UP + 1)..(PREP_UP + 10) && s.lastTen -> countWord(rem - PREP_UP)
-            rem in (PREP_DOWN + 1)..(PREP_DOWN + 10) && s.lastTen -> countWord(rem - PREP_DOWN)
+            // 10 s vóór elk sein: welke vlag, daarna 5 … 1
+            rem == PREP_UP + 10 && s.lastTen -> "${cap(s.prep.spoken)} op over tien seconden."
+            rem in (PREP_UP + 1)..(PREP_UP + 5) && s.lastTen -> countWord(rem - PREP_UP)
+            rem == PREP_DOWN + 10 && s.lastTen -> "${cap(s.prep.spoken)} neer over tien seconden."
+            rem in (PREP_DOWN + 1)..(PREP_DOWN + 5) && s.lastTen -> countWord(rem - PREP_DOWN)
+            rem == 10 && s.lastTen -> buildString {
+                append("Start over tien seconden. ${cap(classSpoken(cls))} neer")
+                if (repeat) append(", ${classSpoken(s.className(classOffset + cycle + 1))} op")
+                append(".")
+            }
+            rem in 6..9 && s.lastTen -> null
             (rem == 180 || rem == 120) && s.everyMinute -> "Nog ${words(rem / 60)} minuten."
             rem in listOf(50, 40, 30, 20) && s.every10s -> "${words(rem).replaceFirstChar { it.uppercase() }} seconden."
-            rem in 1..10 && s.lastTen -> countWord(rem)
+            rem in 1..5 && s.lastTen -> countWord(rem)
             rem == 10 && s.every10s -> "Tien seconden."
             else -> null
         }

@@ -222,6 +222,10 @@ private fun TimerPanel(vm: TimerViewModel, status: EspStatus?, connected: Boolea
             },
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        flagState.upcoming.firstOrNull()?.let {
+            Spacer(Modifier.height(6.dp))
+            UpcomingLine(it)
+        }
         Spacer(Modifier.height(10.dp))
         StatusText(connected, "VERBONDEN", "GEEN VERBINDING", ZzColors.Ok, ZzColors.Error)
         if (!connected) {

@@ -235,7 +235,9 @@ private fun ColumnScope.FlagDisplay(state: FlagState, connected: Boolean) {
         state.flags.forEach { FlagCard(it, 110.dp) }
     }
 
-    state.nextText?.let {
+    // Welke vlag er als eerste op/neer gaat, en die daarna (zoals in Start Timer)
+    if (state.upcoming.isNotEmpty()) UpcomingFlags(state.upcoming)
+    else state.nextText?.let {
         Text("Volgende: $it", fontWeight = FontWeight.Medium, textAlign = TextAlign.Center)
     }
 }

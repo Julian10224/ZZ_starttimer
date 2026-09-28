@@ -326,7 +326,9 @@ class FlagController(
                 if (left != lastPreSpoken) {
                     when {
                         left == 30 && set.every10s -> speak("Waarschuwingssein over dertig seconden.")
-                        left in 1..10 && (set.countdownStart || manual) -> speak(FlagLogic.countWord(left))
+                        left == 10 && (set.countdownStart || manual) ->
+                            speak(FlagLogic.warningIn10(set.className(pendingOffset ?: 0)))
+                        left in 1..5 && (set.countdownStart || manual) -> speak(FlagLogic.countWord(left))
                         left == 0 && lastPreSpoken in 1..3 -> {
                             val w = FlagLogic.warningText(set.className(pendingOffset ?: 0))
                             speak(if (manual) "Druk nu op start. $w" else w)
@@ -394,6 +396,7 @@ class FlagController(
                 nextText = "Vlag neer: 1 geluidssein, waarschuwingssein 1 minuut later",
             )
             pendingIn != null && !running -> base.copy(
+                upcoming = FlagLogic.upcomingPending(pendingIn, set.className(pendingOffset ?: 0), set),
                 phase = Phase.RESUMING, timeText = FlagLogic.mmss(pendingIn), resuming = true,
                 className = set.className(pendingOffset ?: 0),
                 nextText = "Waarschuwingssein over ${FlagLogic.mmss(pendingIn)} · ${set.className(pendingOffset ?: 0)}",
@@ -409,12 +412,20 @@ class FlagController(
                     2 -> Phase.LAST_MINUTE
                     else -> Phase.STARTED
                 }
+                val nextCls = if (repeat) set.className(classOffset + cycle + 1) else null
+                val xDown = if (interrupt == Interrupt.INDIVIDUAL_RECALL)
+                    listOf(UpcomingFlag(ShownFlag(FlagKind.X, "X-vlag"), false, ((FlagLogic.X_MAX_MS - (now - xSinceTl)) / 1000).toInt().coerceAtLeast(0)))
+                    else emptyList()
                 base.copy(
+                    upcoming = (FlagLogic.upcomingRunning(rem, cls, nextCls, set) + xDown).sortedBy { it.inSeconds },
                     phase = phase, timeText = TimerMath.format(rem), startNumber = cycle + 1, className = cls,
                     flags = flags + xFlag, nextText = next, timelineStep = step,
                 )
             }
             else -> base.copy(
+                upcoming = if (interrupt == Interrupt.INDIVIDUAL_RECALL)
+                    listOf(UpcomingFlag(ShownFlag(FlagKind.X, "X-vlag"), false, ((FlagLogic.X_MAX_MS - (now - xSinceTl)) / 1000).toInt().coerceAtLeast(0)))
+                    else emptyList(),
                 phase = if (justStarted) Phase.STARTED else Phase.IDLE,
                 timeText = TimerMath.format(300),
                 className = set.className(0),
