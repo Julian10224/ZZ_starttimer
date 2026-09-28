@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -21,7 +20,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -31,23 +29,32 @@ import androidx.compose.ui.unit.sp
 import nl.julian.zztimer.FlagKind
 import nl.julian.zztimer.ShownFlag
 
-/** Kleuren van de internationale seinvlaggen. */
+/**
+ * Internationale seinvlaggen, in dezelfde vormen, verhoudingen en kleuren als in Start Timer:
+ * vlaggen vierkant, zuivere kleuren; eerste vervangende 4:3, uitstelwimpel 3:1.
+ */
 private object SignalColors {
-    val Blue = Color(0xFF1B4FA0)
-    val Yellow = Color(0xFFF7C600)
-    val Red = Color(0xFFD32F2F)
-    val Black = Color(0xFF111111)
+    val Blue = Color(0xFF0000FF)
+    val Yellow = Color(0xFFFFFF00)
+    val Red = Color(0xFFFF0000)
+    val Black = Color(0xFF000000)
     val White = Color(0xFFFFFFFF)
-    val Edge = Color(0xFF8A9BB0)
+    val Edge = Color(0xFF8A9BB0)      // dunne rand, alleen zodat zwart/wit zichtbaar blijft
 }
 
-/** Tekent één vlag of wimpel. Vlaggen 4:3, wimpels even hoog maar langer. */
+/** Breedte/hoogte van een vlag. */
+private fun aspect(kind: FlagKind): Float = when (kind) {
+    FlagKind.FIRST_SUBSTITUTE -> 4f / 3f
+    FlagKind.AP -> 3f
+    else -> 1f
+}
+
+/** Tekent één vlag of wimpel op de gegeven hoogte. */
 @Composable
 fun SignalFlag(flag: ShownFlag, height: Dp, modifier: Modifier = Modifier) {
-    val pennant = flag.kind == FlagKind.FIRST_SUBSTITUTE || flag.kind == FlagKind.AP
-    val width = if (pennant) height * 1.6f else height * 4f / 3f
+    val width = height * aspect(flag.kind)
     if (flag.kind == FlagKind.CLASS) {
-        ClassFlag(flag.label, height, width, modifier)
+        ClassFlag(flag, height, modifier)
         return
     }
     Canvas(modifier.width(width).height(height)) {
@@ -62,35 +69,45 @@ fun SignalFlag(flag: ShownFlag, height: Dp, modifier: Modifier = Modifier) {
             FlagKind.AP -> drawAnswering()
             FlagKind.CLASS -> Unit
         }
-        if (!pennant) drawRect(SignalColors.Edge, style = Stroke(width = 1.5f))
+        if (flag.kind != FlagKind.FIRST_SUBSTITUTE && flag.kind != FlagKind.AP) {
+            drawRect(SignalColors.Edge, style = Stroke(width = 1.5f))
+        }
     }
 }
 
-/** Klassevlag: wit met de klassenaam. */
+/** Klassevlag: vierkant, gekozen achtergrondkleur met de klassenaam. */
 @Composable
-private fun ClassFlag(name: String, height: Dp, width: Dp, modifier: Modifier) {
+private fun ClassFlag(flag: ShownFlag, height: Dp, modifier: Modifier) {
     Box(
         modifier
-            .width(width)
+            .width(height)
             .height(height)
-            .background(SignalColors.White)
+            .background(Color(flag.classColor.argb))
             .border(1.5.dp, SignalColors.Edge),
         contentAlignment = Alignment.Center,
     ) {
+        val len = flag.label.length.coerceAtLeast(1)
+        val size = when {
+            len <= 3 -> 0.36f
+            len <= 6 -> 0.24f
+            len <= 10 -> 0.17f
+            else -> 0.13f
+        }
         Text(
-            name,
-            color = SignalColors.Blue,
+            flag.label,
+            color = Color(flag.classColor.textArgb),
             fontWeight = FontWeight.Black,
-            fontSize = (height.value * 0.26f).sp,
+            fontSize = (height.value * size).sp,
+            lineHeight = (height.value * size * 1.05f).sp,
             textAlign = TextAlign.Center,
-            maxLines = 2,
+            maxLines = 3,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(6.dp),
+            modifier = Modifier.padding(4.dp),
         )
     }
 }
 
-// P (Papa): blauw met een wit vlak in het midden
+// P (Papa): blauw, wit vierkant van 1/3 in het midden
 private fun DrawScope.drawP() {
     drawRect(SignalColors.Blue)
     val w = size.width / 3f
@@ -98,13 +115,13 @@ private fun DrawScope.drawP() {
     drawRect(SignalColors.White, topLeft = Offset(w, h), size = Size(w, h))
 }
 
-// I (India): geel met een zwarte bol
+// I (India): geel, zwarte bol met straal 1/4 van de breedte
 private fun DrawScope.drawI() {
     drawRect(SignalColors.Yellow)
-    drawCircle(SignalColors.Black, radius = size.minDimension * 0.25f, center = center)
+    drawCircle(SignalColors.Black, radius = size.width * 0.25f, center = center)
 }
 
-// Z (Zulu): vier driehoeken – boven geel, broekingzijde (links) zwart, onder rood, rechts blauw
+// Z (Zulu): boven geel, broekingzijde zwart, onder rood, vluchtzijde blauw
 private fun DrawScope.drawZ() {
     val w = size.width
     val h = size.height
@@ -118,7 +135,7 @@ private fun DrawScope.drawZ() {
     tri(Offset(w, 0f), Offset(w, h), SignalColors.Blue)
 }
 
-// U (Uniform): kwartieren rood en wit, rood linksboven en rechtsonder
+// U (Uniform): rood linksboven en rechtsonder, verder wit
 private fun DrawScope.drawU() {
     drawRect(SignalColors.White)
     val hw = size.width / 2f
@@ -127,52 +144,45 @@ private fun DrawScope.drawU() {
     drawRect(SignalColors.Red, topLeft = Offset(hw, hh), size = Size(hw, hh))
 }
 
-// X (X-ray): wit met een blauw kruis
+// X (X-ray): wit met blauw kruis, balken 1/5 van de breedte
 private fun DrawScope.drawX() {
     drawRect(SignalColors.White)
-    val bw = size.width / 5f
-    val bh = size.height / 5f
-    drawRect(SignalColors.Blue, topLeft = Offset((size.width - bw) / 2f, 0f), size = Size(bw, size.height))
-    drawRect(SignalColors.Blue, topLeft = Offset(0f, (size.height - bh) / 2f), size = Size(size.width, bh))
+    val b = size.width / 5f
+    drawRect(SignalColors.Blue, topLeft = Offset((size.width - b) / 2f, 0f), size = Size(b, size.height))
+    drawRect(SignalColors.Blue, topLeft = Offset(0f, (size.height - b) / 2f), size = Size(size.width, b))
 }
 
-// Eerste vervangende: driehoekige wimpel, geel met een blauwe rand die de broekingzijde niet raakt
+// Eerste vervangende (4:3): blauwe driehoek, gele driehoek die de broekingzijde raakt
 private fun DrawScope.drawFirstSubstitute() {
     val w = size.width
     val h = size.height
     val outer = Path().apply { moveTo(0f, 0f); lineTo(w, h / 2f); lineTo(0f, h); close() }
     drawPath(outer, SignalColors.Blue)
-    val b = h * 0.17f
     val inner = Path().apply {
-        moveTo(0f, b)
-        lineTo(w - b * 3.2f, h / 2f)
-        lineTo(0f, h - b)
+        moveTo(0f, h * 0.2f)
+        lineTo(w * 0.6325f, h / 2f)
+        lineTo(0f, h * 0.8f)
         close()
     }
     drawPath(inner, SignalColors.Yellow)
     drawPath(outer, SignalColors.Edge, style = Stroke(width = 1.5f))
 }
 
-// Uitstelwimpel (antwoordwimpel, AP): taps toelopend, vijf verticale banen rood en wit
+// Uitstelwimpel AP (3:1): taps, rood met twee witte banen
 private fun DrawScope.drawAnswering() {
     val w = size.width
     val h = size.height
-    val shape = Path().apply {
-        moveTo(0f, 0f)
-        lineTo(w, h * 0.3f)
-        lineTo(w, h * 0.7f)
-        lineTo(0f, h)
-        close()
-    }
-    clipPath(shape) {
-        val stripe = w / 5f
-        for (i in 0 until 5) {
-            drawRect(
-                if (i % 2 == 0) SignalColors.Red else SignalColors.White,
-                topLeft = Offset(i * stripe, 0f),
-                size = Size(stripe + 1f, h),
-            )
-        }
+    fun yTop(x: Float) = h * 0.4f * (x / w)                 // bovenrand loopt van 0 naar 0,4h
+    fun yBot(x: Float) = h - h * 0.4f * (x / w)             // onderrand van h naar 0,6h
+    val shape = Path().apply { moveTo(0f, 0f); lineTo(w, h * 0.4f); lineTo(w, h * 0.6f); lineTo(0f, h); close() }
+    drawPath(shape, SignalColors.Red)
+    for ((x0, x1) in listOf(0.2f to 0.4f, 0.6f to 0.8067f)) {
+        val a = w * x0
+        val b = w * x1
+        drawPath(
+            Path().apply { moveTo(a, yTop(a)); lineTo(b, yTop(b)); lineTo(b, yBot(b)); lineTo(a, yBot(a)); close() },
+            SignalColors.White,
+        )
     }
     drawPath(shape, SignalColors.Edge, style = Stroke(width = 1.5f))
 }
@@ -198,7 +208,7 @@ fun NoFlags(height: Dp) {
     Box(
         Modifier
             .height(height)
-            .aspectRatio(4f / 3f)
+            .width(height)
             .border(1.5.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp)),
         contentAlignment = Alignment.Center,
     ) {

@@ -53,7 +53,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import nl.julian.zztimer.ClassColor
+import nl.julian.zztimer.EspStatus
 import nl.julian.zztimer.FlagSettings
+import nl.julian.zztimer.ScheduleInput
 import nl.julian.zztimer.FlagState
 import nl.julian.zztimer.Interrupt
 import nl.julian.zztimer.Phase
@@ -75,6 +78,8 @@ fun FlagsScreen(vm: TimerViewModel, bottomBar: @Composable () -> Unit) {
     val snackbar = remember { SnackbarHostState() }
     var showSettings by remember { mutableStateOf(false) }
     var confirm by remember { mutableStateOf<Confirm?>(null) }
+    var scheduleEdit by remember { mutableStateOf<ScheduleInput?>(null) }
+    val status by vm.status.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) { vm.messages.collect { snackbar.showSnackbar(it) } }
 
@@ -110,7 +115,7 @@ fun FlagsScreen(vm: TimerViewModel, bottomBar: @Composable () -> Unit) {
                     Column(
                         Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()).padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) { FlagControls(vm, state, settings, connected) { confirm = it } }
+                    ) { FlagControls(vm, state, settings, connected, status, { confirm = it }, { scheduleEdit = it }) }
                 }
             } else {
                 Column(
@@ -119,7 +124,7 @@ fun FlagsScreen(vm: TimerViewModel, bottomBar: @Composable () -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     FlagDisplay(state, connected)
-                    FlagControls(vm, state, settings, connected) { confirm = it }
+                    FlagControls(vm, state, settings, connected, status, { confirm = it }, { scheduleEdit = it })
                     Spacer(Modifier.height(8.dp))
                 }
             }
@@ -143,6 +148,10 @@ fun FlagsScreen(vm: TimerViewModel, bottomBar: @Composable () -> Unit) {
             },
             dismissButton = { TextButton(onClick = { confirm = null }) { Text("Annuleren") } },
         )
+    }
+
+    scheduleEdit?.let { input ->
+        ScheduleDialog(vm = vm, initial = input, onDismiss = { scheduleEdit = null })
     }
 
     if (showSettings) {
@@ -220,8 +229,38 @@ private fun FlagControls(
     state: FlagState,
     settings: FlagSettings,
     connected: Boolean,
+    status: EspStatus?,
     onConfirm: (Confirm) -> Unit,
+    onEditSchedule: (ScheduleInput) -> Unit,
 ) {
+    // Start / stop met de keuze 10 s aftellen of direct (gelijk aan de Timer-pagina)
+    StartControls(vm, connected)
+
+    // Onderbrekingen
+    SectionCard("SEINEN") {
+        when {
+            state.interrupt == Interrupt.POSTPONED -> {
+                BigButton("UITSTELWIMPEL NEER", ZzColors.Horn, connected && state.canResume, vm.flags::resume, Modifier.fillMaxWidth())
+                Hint("1 geluidssein; de timer geeft 1 minuut later zelf het waarschuwingssein.")
+            }
+            state.interrupt == Interrupt.GENERAL_RECALL -> {
+                BigButton("EERSTE VERVANGENDE NEER", ZzColors.Horn, connected && state.canResume, vm.flags::resume, Modifier.fillMaxWidth())
+                Hint("1 geluidssein; de timer geeft 1 minuut later zelf het waarschuwingssein.")
+            }
+            else -> {
+                if (state.interrupt == Interrupt.INDIVIDUAL_RECALL) {
+                    OutlinedButton(onClick = vm.flags::lowerX, modifier = Modifier.fillMaxWidth()) {
+                        Text("X-vlag neer (alle boten terug)")
+                    }
+                }
+                SignalButton("X", "Individuele terugroep", connected && state.canIndividualRecall) { onConfirm(Confirm.INDIVIDUAL) }
+                SignalButton("1e", "Algemene terugroep", connected && state.canGeneralRecall) { onConfirm(Confirm.GENERAL) }
+                SignalButton("AP", "Uitstel", connected && state.canPostpone) { onConfirm(Confirm.POSTPONE) }
+                Hint("Terugroepen kan tot 4 minuten na een start.")
+            }
+        }
+    }
+
     // Verloop volgens regel 26
     SectionCard("VERLOOP (REGEL 26)") {
         val steps = listOf(
@@ -254,41 +293,8 @@ private fun FlagControls(
         }
     }
 
-    // Start / stop
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-        BigButton("START", ZzColors.Go, connected && state.canStart, vm::start, Modifier.weight(1f))
-        BigButton("STOP / RESET", ZzColors.Stop, connected, vm::reset, Modifier.weight(1f))
-    }
-
-    // Onderbrekingen
-    SectionCard("SEINEN") {
-        when {
-            state.interrupt == Interrupt.POSTPONED -> {
-                BigButton("UITSTELWIMPEL NEER", ZzColors.Horn, connected && state.canResume, vm.flags::resume, Modifier.fillMaxWidth())
-                Hint("1 geluidssein; de timer geeft 1 minuut later zelf het waarschuwingssein.")
-            }
-            state.interrupt == Interrupt.GENERAL_RECALL -> {
-                BigButton("EERSTE VERVANGENDE NEER", ZzColors.Horn, connected && state.canResume, vm.flags::resume, Modifier.fillMaxWidth())
-                Hint("1 geluidssein; de timer geeft 1 minuut later zelf het waarschuwingssein.")
-            }
-            state.resuming -> {
-                OutlinedButton(onClick = vm.flags::cancelResume, enabled = connected, modifier = Modifier.fillMaxWidth()) {
-                    Text("Waarschuwingssein annuleren")
-                }
-            }
-            else -> {
-                if (state.interrupt == Interrupt.INDIVIDUAL_RECALL) {
-                    OutlinedButton(onClick = vm.flags::lowerX, modifier = Modifier.fillMaxWidth()) {
-                        Text("X-vlag neer (alle boten terug)")
-                    }
-                }
-                SignalButton("X", "Individuele terugroep", connected && state.canIndividualRecall) { onConfirm(Confirm.INDIVIDUAL) }
-                SignalButton("1e", "Algemene terugroep", connected && state.canGeneralRecall) { onConfirm(Confirm.GENERAL) }
-                SignalButton("AP", "Uitstel", connected && state.canPostpone) { onConfirm(Confirm.POSTPONE) }
-                Hint("Terugroepen kan tot 4 minuten na een start.")
-            }
-        }
-    }
+    // Geplande starts (zelfde lijst als op de Timer-pagina)
+    ScheduleSection(vm, status, connected, onEditSchedule)
 
     // Stem
     SectionCard("STEM") {
@@ -330,6 +336,7 @@ private fun FlagSettingsDialog(vm: TimerViewModel, initial: FlagSettings, onDism
     var everyMinute by remember { mutableStateOf(initial.everyMinute) }
     var every10s by remember { mutableStateOf(initial.every10s) }
     var lastTen by remember { mutableStateOf(initial.lastTen) }
+    var classColor by remember { mutableStateOf(initial.classColor) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -352,6 +359,12 @@ private fun FlagSettingsDialog(vm: TimerViewModel, initial: FlagSettings, onDism
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Hint("Gescheiden door komma's. Bij herhalen (schakelaar op de timer) krijgt elke start de volgende klasse.")
+                Text("Kleur klassevlag", fontWeight = FontWeight.Medium)
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ClassColor.entries.forEach { c ->
+                        FilterChip(selected = classColor == c, onClick = { classColor = c }, label = { Text(c.label) })
+                    }
+                }
                 HorizontalDivider()
                 Text("Aankondigingen", fontWeight = FontWeight.Medium)
                 SwitchRow("Elke minuut", everyMinute) { everyMinute = it }
@@ -369,6 +382,7 @@ private fun FlagSettingsDialog(vm: TimerViewModel, initial: FlagSettings, onDism
                         everyMinute = everyMinute,
                         every10s = every10s,
                         lastTen = lastTen,
+                        classColor = classColor,
                     )
                 )
                 onDismiss()

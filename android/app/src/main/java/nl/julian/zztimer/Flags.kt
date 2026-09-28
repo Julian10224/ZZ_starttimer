@@ -32,6 +32,16 @@ enum class Phase(val label: String) {
     NO_CONNECTION("Geen verbinding"),
 }
 
+/** Achtergrondkleur van de klassevlag. */
+enum class ClassColor(val label: String, val argb: Long, val textArgb: Long) {
+    WHITE("Wit", 0xFFFFFFFF, 0xFF0000FF),
+    YELLOW("Geel", 0xFFFFFF00, 0xFF000000),
+    RED("Rood", 0xFFFF0000, 0xFFFFFFFF),
+    BLUE("Blauw", 0xFF0000FF, 0xFFFFFFFF),
+    GREEN("Groen", 0xFF008000, 0xFFFFFFFF),
+    ORANGE("Oranje", 0xFFFF8C00, 0xFF000000),
+}
+
 /** Welke vlaggen er te zien zijn. */
 enum class FlagKind { CLASS, P, I, Z, U, BLACK, X, FIRST_SUBSTITUTE, AP }
 
@@ -50,6 +60,8 @@ data class FlagSettings(
     val everyMinute: Boolean = true,
     val every10s: Boolean = true,
     val lastTen: Boolean = true,
+    val countdownStart: Boolean = true,   // START: eerst 10 s aftellen (true) of direct (false)
+    val classColor: ClassColor = ClassColor.WHITE,
 ) {
     /** Klasse voor een start; bij herhalen loopt de lijst rond. */
     fun className(index: Int): String {
@@ -58,7 +70,7 @@ data class FlagSettings(
     }
 }
 
-data class ShownFlag(val kind: FlagKind, val label: String)
+data class ShownFlag(val kind: FlagKind, val label: String, val classColor: ClassColor = ClassColor.WHITE)
 
 data class FlagState(
     val phase: Phase = Phase.NO_CONNECTION,
@@ -139,7 +151,7 @@ object FlagLogic {
     /** Vlaggen en volgende gebeurtenis tijdens een lopende procedure. */
     fun runningFlags(rem: Int, className: String, s: FlagSettings): Triple<List<ShownFlag>, String?, Int> {
         val flags = mutableListOf<ShownFlag>()
-        if (rem > 0) flags += ShownFlag(FlagKind.CLASS, className)
+        if (rem > 0) flags += ShownFlag(FlagKind.CLASS, className, s.classColor)
         if (rem in (PREP_DOWN + 1)..PREP_UP) flags += ShownFlag(s.prep.kind(), s.prep.label)
         val next = when {
             rem > PREP_UP -> "${s.prep.label} op over ${mmss(rem - PREP_UP)}"

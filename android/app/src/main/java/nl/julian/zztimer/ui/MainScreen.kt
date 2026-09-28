@@ -242,29 +242,7 @@ private fun Controls(
     val running = status?.running == true
     val panelOn = status?.ledPanel != false
 
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-        BigButton(
-            text = "START",
-            color = ZzColors.Go,
-            enabled = connected && status != null && !running && panelOn,
-            onClick = vm::start,
-            modifier = Modifier.weight(1f),
-        )
-        BigButton(
-            text = "STOP / RESET",
-            color = ZzColors.Stop,
-            enabled = connected && status != null,
-            onClick = vm::reset,
-            modifier = Modifier.weight(1f),
-        )
-    }
-    if (connected && status != null && !panelOn) {
-        Text(
-            "Het LED-paneel staat uit. Zet het aan om te kunnen starten.",
-            style = MaterialTheme.typography.bodySmall,
-            color = ZzColors.Error,
-        )
-    }
+    StartControls(vm, connected)
 
     // Modus: wordt bepaald door de schakelaar op de timer
     SectionCard("MODUS") {
@@ -311,8 +289,20 @@ private fun Controls(
         )
     }
 
+    ScheduleSection(vm, status, connected, onEditSchedule)
+}
+
+/** Lijst met geplande starts; op de Timer- en de Vlaggenpagina. */
+@Composable
+internal fun ScheduleSection(
+    vm: TimerViewModel,
+    status: EspStatus?,
+    connected: Boolean,
+    onEditSchedule: (ScheduleInput) -> Unit,
+) {
     SectionCard("GEPLANDE STARTS") {
-        val schedules = status?.schedules.orEmpty()
+        // Starts die de app zelf plant (10 s aftellen, hervatten) staan bij de START-knop
+        val schedules = status?.schedules.orEmpty().filter { it.pressEpoch !in vm.client.silentTargets }
         if (status != null && !status.timeSynced) {
             Text(
                 "De klok van de timer wordt gesynchroniseerd met deze telefoon…",
@@ -427,6 +417,15 @@ private fun ScheduleRow(s: Schedule, enabled: Boolean, onEdit: () -> Unit, onDel
             else
                 "Procedure start · startschot ${TimeFormat.time(s.pressEpoch + 300_000)}"
             Text("${TimeFormat.dayLabel(s.targetEpoch)} · $what", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            val until = s.pressEpoch - System.currentTimeMillis()
+            if (until in 0..3_600_000L) {
+                Text(
+                    "Waarschuwingssein over ${TimerMath.format(((until + 999) / 1000).toInt())}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ZzColors.Horn,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
         }
         IconButton(onClick = onEdit, enabled = enabled) { Icon(Icons.Filled.Edit, contentDescription = "Aanpassen") }
         IconButton(onClick = onDelete, enabled = enabled) { Icon(Icons.Filled.Delete, contentDescription = "Verwijderen") }
@@ -435,7 +434,7 @@ private fun ScheduleRow(s: Schedule, enabled: Boolean, onEdit: () -> Unit, onDel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ScheduleDialog(vm: TimerViewModel, initial: ScheduleInput, onDismiss: () -> Unit) {
+internal fun ScheduleDialog(vm: TimerViewModel, initial: ScheduleInput, onDismiss: () -> Unit) {
     val picker = rememberTimePickerState(initialHour = initial.hour, initialMinute = initial.minute, is24Hour = true)
     var kind by remember { mutableIntStateOf(initial.kind) }
     var error by remember { mutableStateOf<String?>(null) }

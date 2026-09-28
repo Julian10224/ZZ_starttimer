@@ -65,8 +65,8 @@ class TimerViewModel(app: Application) : AndroidViewModel(app) {
 
     // ------------------------------------------------------------------ bediening
 
-    /** START: 10 seconden aftellen, daarna start de timer met het waarschuwingssein. */
-    fun start() = flags.startWithCountdown()
+    /** START: volgens de keuze onder de knoppen 10 seconden aftellen of direct starten. */
+    fun start() = flags.start()
 
     /** STOP en RESET doen hetzelfde: terug naar 5:00, net als de resetknop. */
     fun reset() = send("reset")

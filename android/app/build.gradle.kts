@@ -12,8 +12,8 @@ android {
         applicationId = "nl.julian.zztimer"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.3"
+        versionCode = 5
+        versionName = "1.4"
     }
 
     // Vaste sleutel, zodat een nieuwe APK over een oudere versie heen geïnstalleerd kan worden.

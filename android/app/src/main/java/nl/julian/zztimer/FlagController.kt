@@ -67,6 +67,9 @@ class FlagController(
             everyMinute = prefs.getBoolean(K_MIN, true),
             every10s = prefs.getBoolean(K_10S, true),
             lastTen = prefs.getBoolean(K_LAST10, true),
+            countdownStart = prefs.getBoolean(K_COUNTDOWN, true),
+            classColor = runCatching { ClassColor.valueOf(prefs.getString(K_CLASS_COLOR, ClassColor.WHITE.name)!!) }
+                .getOrDefault(ClassColor.WHITE),
         )
     }
 
@@ -79,6 +82,8 @@ class FlagController(
             .putBoolean(K_MIN, s.everyMinute)
             .putBoolean(K_10S, s.every10s)
             .putBoolean(K_LAST10, s.lastTen)
+            .putBoolean(K_COUNTDOWN, s.countdownStart)
+            .putString(K_CLASS_COLOR, s.classColor.name)
             .apply()
     }
 
@@ -152,7 +157,7 @@ class FlagController(
                 if (left != lastPreSpoken) {
                     when {
                         left == 30 && set.every10s -> speak("Waarschuwingssein over dertig seconden.")
-                        left in 1..10 && set.lastTen -> speak(FlagLogic.countWord(left))
+                        left in 1..10 && set.countdownStart -> speak(FlagLogic.countWord(left))
                         left == 0 && lastPreSpoken in 1..3 -> {
                             speak(FlagLogic.warningText(set.className(pendingOffset ?: 0)))
                             warningSpokenAt = phoneNow
@@ -300,6 +305,24 @@ class FlagController(
         if (err != null) message(err)
     }
 
+    /** START in de stand "Direct": de timer start meteen met het waarschuwingssein. */
+    fun startDirect() = action {
+        val s = client.status.value
+        if (s == null) {
+            message("Geen verbinding met de timer.")
+            return@action
+        }
+        val ack = client.command("start")
+        if (!ack.ok) message(ack.error ?: "Starten mislukt.")
+    }
+
+    /** START volgens de gekozen stand (10 s aftellen of direct). */
+    fun start() {
+        if (_settings.value.countdownStart) startWithCountdown() else startDirect()
+    }
+
+    fun setCountdownStart(on: Boolean) = updateSettings(_settings.value.copy(countdownStart = on))
+
     /** X-vlag op met één geluidssein (RvW 29.1). */
     fun individualRecall() = action {
         val now = client.espNow() ?: return@action
@@ -397,5 +420,7 @@ class FlagController(
         private const val K_MIN = "voice_minutes"
         private const val K_10S = "voice_10s"
         private const val K_LAST10 = "voice_last10"
+        private const val K_COUNTDOWN = "start_countdown"
+        private const val K_CLASS_COLOR = "class_color"
     }
 }
