@@ -1,8 +1,11 @@
 package nl.julian.zztimer.ui
 
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import nl.julian.zztimer.R
+
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,10 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,8 +43,12 @@ fun SplashScreen() {
                 .alpha(fade.value),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            StopwatchLogo(Modifier.size(104.dp))
-            Spacer(Modifier.height(28.dp))
+            Image(
+                painter = painterResource(R.drawable.ic_launcher_foreground),
+                contentDescription = null,
+                modifier = Modifier.size(180.dp),
+            )
+            Spacer(Modifier.height(4.dp))
             Text(
                 "ZZ Wedstrijd Timer",
                 color = Color.White,
@@ -62,32 +66,5 @@ fun SplashScreen() {
                 .padding(bottom = 32.dp)
                 .alpha(fade.value),
         )
-    }
-}
-
-@Composable
-fun StopwatchLogo(modifier: Modifier = Modifier) {
-    Canvas(modifier) {
-        val stroke = size.minDimension * 0.07f
-        val radius = size.minDimension * 0.36f
-        val center = Offset(size.width / 2f, size.height * 0.57f)
-        val top = center.y - radius
-        drawLine(
-            ZzColors.Sea,
-            Offset(center.x - radius * 0.3f, top - stroke * 2.4f),
-            Offset(center.x + radius * 0.3f, top - stroke * 2.4f),
-            strokeWidth = stroke,
-            cap = StrokeCap.Round,
-        )
-        drawLine(ZzColors.Sea, Offset(center.x, top - stroke * 2.2f), Offset(center.x, top), strokeWidth = stroke * 0.8f)
-        drawCircle(ZzColors.Sea, radius, center, style = Stroke(width = stroke))
-        drawLine(
-            Color.White,
-            center,
-            Offset(center.x + radius * 0.5f, center.y - radius * 0.5f),
-            strokeWidth = stroke * 0.8f,
-            cap = StrokeCap.Round,
-        )
-        drawCircle(Color.White, stroke * 0.7f, center)
     }
 }

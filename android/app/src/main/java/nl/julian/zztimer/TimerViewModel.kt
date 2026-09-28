@@ -41,12 +41,25 @@ class TimerViewModel(app: Application) : AndroidViewModel(app) {
 
     val host: String get() = client.host
 
+    /** Vlaggenpagina: vlaggen, spraak, terugroepen en uitstel. */
+    val flags = FlagController(
+        app = app,
+        scope = viewModelScope,
+        client = client,
+        prefs = prefs,
+        hornOn = ::hornPressed,
+        hornOff = ::hornReleased,
+        message = { _messages.emit(it) },
+    )
+
     init {
         client.start()
+        flags.start()
     }
 
     override fun onCleared() {
         hornReleased()
+        flags.shutdown()
         client.stop()
     }
 

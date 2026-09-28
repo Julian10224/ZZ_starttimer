@@ -81,7 +81,7 @@ import java.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(vm: TimerViewModel, onOpenSettings: () -> Unit) {
+fun MainScreen(vm: TimerViewModel, onOpenSettings: () -> Unit, bottomBar: @Composable () -> Unit = {}) {
     val status by vm.status.collectAsStateWithLifecycle()
     val connected by vm.connected.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
@@ -102,6 +102,7 @@ fun MainScreen(vm: TimerViewModel, onOpenSettings: () -> Unit) {
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },
+        bottomBar = bottomBar,
         snackbarHost = { SnackbarHost(snackbar) },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->

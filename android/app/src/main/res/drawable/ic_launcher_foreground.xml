@@ -1,30 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Stopwatch-logo, 108 x 108 dp adaptieve-icoon-raster (veilige zone: middelste 66 dp) -->
+<!-- Zeilboot met stopwatch, 108 x 108 dp adaptieve-icoon-raster (veilige zone: cirkel r = 33 rond het midden) -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:pathData="M49,32 L59,32"
-        android:strokeWidth="5"
-        android:strokeColor="#FF4FC3F7"
-        android:strokeLineCap="round" />
-    <path
-        android:pathData="M54,33 L54,39"
-        android:strokeWidth="4"
-        android:strokeColor="#FF4FC3F7" />
+
+    <!-- Golven -->
     <path
         android:fillColor="#00000000"
-        android:pathData="M36,58 a18,18 0 1,0 36,0 a18,18 0 1,0 -36,0"
-        android:strokeWidth="5"
-        android:strokeColor="#FF4FC3F7" />
+        android:strokeColor="#FF4FC3F7"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:pathData="M33,78 q4,-3 8,0 t8,0 t8,0 t8,0 t8,0" />
+
+    <!-- Romp -->
     <path
-        android:pathData="M54,58 L62,50"
-        android:strokeWidth="4"
+        android:fillColor="#FFE6EEF6"
+        android:pathData="M39,66 L80,66 L73,73 L45,73 Z" />
+
+    <!-- Mast -->
+    <path
+        android:fillColor="#00000000"
         android:strokeColor="#FFFFFFFF"
-        android:strokeLineCap="round" />
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:pathData="M56,26 L56,66" />
+
+    <!-- Grootzeil -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M51,58 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
+        android:pathData="M57.5,27 L57.5,63.5 L77,63.5 Z" />
+
+    <!-- Fok -->
+    <path
+        android:fillColor="#FF4FC3F7"
+        android:pathData="M54.5,33 L54.5,63.5 L42,63.5 Z" />
+
+    <!-- Stopwatch -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFB300"
+        android:strokeWidth="2.4"
+        android:pathData="M28.5,41 a7.5,7.5 0 1,0 15,0 a7.5,7.5 0 1,0 -15,0" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFB300"
+        android:strokeWidth="2.4"
+        android:strokeLineCap="round"
+        android:pathData="M33.5,30.5 L38.5,30.5 M36,30.5 L36,33.2" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:pathData="M36,41 L36,36.5 M36,41 L39,43" />
 </vector>
