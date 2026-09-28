@@ -98,6 +98,13 @@ object FlagLogic {
         else -> n.toString()
     }
 
+    /** Eén woord uit het aftellen: "Tien." … "Eén." */
+    fun countWord(n: Int): String = words(n).replaceFirstChar { it.uppercase() } + "."
+
+    /** Tekst bij het waarschuwingssein (5:00). */
+    fun warningText(className: String): String =
+        "Waarschuwingssein. ${classSpoken(className).replaceFirstChar { it.uppercase() }} op. Nog vijf minuten."
+
     fun classSpoken(name: String): String =
         if (name.equals("Klasse", ignoreCase = true)) "klassevlag" else "klassevlag $name"
 
@@ -111,18 +118,20 @@ object FlagLogic {
         val cycle = cycleForK(k)
         val cls = s.className(classOffset + cycle)
         return when {
-            k == 0L -> "Waarschuwingssein. ${classSpoken(cls).replaceFirstChar { it.uppercase() }} op. Nog vijf minuten."
+            k == 0L -> warningText(cls)
             rem == 0 -> buildString {
                 append("Start! ${classSpoken(cls).replaceFirstChar { it.uppercase() }} neer.")
                 if (repeat) append(" Waarschuwingssein ${classSpoken(s.className(classOffset + cycle + 1))}. Nog vijf minuten.")
             }
             rem == PREP_UP -> "Voorbereidingssein. ${s.prep.spoken.replaceFirstChar { it.uppercase() }} op. Nog vier minuten."
             rem == PREP_DOWN -> "Nog één minuut. ${s.prep.spoken.replaceFirstChar { it.uppercase() }} neer."
+            // 10 seconden aftellen vóór het voorbereidingssein (4:00) en vóór 1:00
+            rem in (PREP_UP + 1)..(PREP_UP + 10) && s.lastTen -> countWord(rem - PREP_UP)
+            rem in (PREP_DOWN + 1)..(PREP_DOWN + 10) && s.lastTen -> countWord(rem - PREP_DOWN)
             (rem == 180 || rem == 120) && s.everyMinute -> "Nog ${words(rem / 60)} minuten."
             rem in listOf(50, 40, 30, 20) && s.every10s -> "${words(rem).replaceFirstChar { it.uppercase() }} seconden."
-            rem == 10 && s.lastTen -> "Tien."
+            rem in 1..10 && s.lastTen -> countWord(rem)
             rem == 10 && s.every10s -> "Tien seconden."
-            rem in 1..9 && s.lastTen -> words(rem).replaceFirstChar { it.uppercase() } + "."
             else -> null
         }
     }

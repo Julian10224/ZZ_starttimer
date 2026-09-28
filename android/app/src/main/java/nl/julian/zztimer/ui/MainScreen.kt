@@ -206,10 +206,12 @@ private fun TimerPanel(vm: TimerViewModel, status: EspStatus?, connected: Boolea
             maxLines = 1,
             modifier = Modifier.alpha(if (connected && !panelOff) 1f else 0.45f),
         )
+        val flagState by vm.flags.state.collectAsStateWithLifecycle()
         Text(
             text = when {
                 status == null -> "Wachten op de timer…"
                 panelOff -> "LED-paneel staat uit"
+                flagState.phase == nl.julian.zztimer.Phase.RESUMING -> "Waarschuwingssein over ${flagState.timeText}"
                 status.running && status.repeat -> "Procedure loopt · herhalen"
                 status.running -> "Procedure loopt · één keer"
                 else -> "Gereed"

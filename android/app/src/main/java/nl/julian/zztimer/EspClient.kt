@@ -74,6 +74,9 @@ class EspClient(context: Context, private val scope: CoroutineScope, host: Strin
     private val _wifiSignal = MutableStateFlow<Int?>(null)
     val wifiSignal: StateFlow<Int?> = _wifiSignal.asStateFlow()
 
+    /** Geplande starts die de app zelf maakt (aftellen, hervatten): geen melding tonen. */
+    val silentTargets: MutableSet<Long> = ConcurrentHashMap.newKeySet()
+
     private val _events = MutableSharedFlow<String>(extraBufferCapacity = 16)
     val events: SharedFlow<String> = _events.asSharedFlow()
 
@@ -253,6 +256,7 @@ class EspClient(context: Context, private val scope: CoroutineScope, host: Strin
                 )
             }
             "event" -> {
+                if (silentTargets.remove(o.optLong("target_epoch"))) return
                 val target = TimeFormat.time(o.optLong("target_epoch"))
                 val msg = when (o.optString("event")) {
                     "sched_started" -> "Geplande start ($target) is uitgevoerd."
