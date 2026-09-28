@@ -264,6 +264,7 @@ Op de branch `android-app` staat V8: V7 plus een eigen WiFi-netwerk waarmee de A
 | [docs/PROTOCOL.md](docs/PROTOCOL.md) | WebSocket/JSON-protocol en kloksynchronisatie |
 | [docs/ANDROID_APP.md](docs/ANDROID_APP.md) | App installeren, bouwen, verbinden met de timer, standaardwaarden |
 | [docs/TESTPLAN.md](docs/TESTPLAN.md) | Testscenario's |
+| [docs/VLAGGEN.md](docs/VLAGGEN.md) | Vlaggenpagina in de app: regel-26-vlaggen, Nederlandse stem, terugroepen en uitstel |
 | [docs/V9_PWM_RELAIS.md](docs/V9_PWM_RELAIS.md) | V9: aansturing van het PWM-relais |
 | [docs/V10_MATRIXBOARD.md](docs/V10_MATRIXBOARD.md) | V10: nieuw matrixboard en mapping bepalen met de testsketch |
 | [docs/V11_ROBUUSTHEID.md](docs/V11_ROBUUSTHEID.md) | V11: waarom en hoe de timer nooit stopt door WiFi/app, herstel na een crash, testen |
