@@ -46,6 +46,7 @@ timer-zz/
     ├── Timer_ZZ_V9/Timer_ZZ_V9.ino   ← branch android-app, bord met PWM-relais
     ├── Timer_ZZ_V10/Timer_ZZ_V10.ino ← branch android-app, PWM-relais + nieuw matrixboard (3 digits)
     ├── Timer_ZZ_V11/Timer_ZZ_V11.ino ← branch android-app, als V10, robuust voor wedstrijden
+    ├── Timer_ZZ_V12/Timer_ZZ_V12.ino ← branch android-app, als V11, lampje toeterknop omgekeerd
     └── Timer_ZZ_Segmenttest/         ← testsketch voor de segmentmapping van het matrixboard
 android/                           ← Android-app (branch android-app)
 docs/                              ← analyse V8, protocol, app, testplan
@@ -238,6 +239,7 @@ In V7 schuift `updateShiftRegisterDisplay()` dezelfde drie bytes twee keer in (z
 | **V4** | `Bounce2`-debouncing i.p.v. interrupts, slaapmodus, nieuwe modus: eerst optellen tot 4:00 en dan aftellen vanaf 5:00. Driftvrije tijdbasis. |
 | **V5** | Reset direct bij indrukken, handmatige hoorn ook toegestaan tussen 5:00 en 4:00, auto-slaap na 6 min, pinnen `horn_button`/`timer_switch` gewisseld. |
 | **V6** | Instelbare relaisduur: 0,5 s bij start en 4:00, 1 s bij 1:00 en 0:00. |
+| **V12** *(branch android-app)* | V11 met omgekeerd lampje in de handmatige toeterknop (GPIO 22): `HIGH` = toeter toegestaan, `LOW` = geblokkeerd. |
 | **V11** *(branch android-app)* | V10 robuust gemaakt: netwerk in eigen taak (timer wacht nooit op WiFi), watchdog op de timer, herstel van een lopende procedure na een crash. |
 | **V10** *(branch android-app)* | V9 voor het nieuwe matrixboard: enable actief-laag, 3 digits, instelbare segmentmapping. Plus testsketch `Timer_ZZ_Segmenttest`. |
 | **V9** *(branch android-app)* | V8 met PWM-relais (servopuls 50 Hz: 1 ms uit, 2 ms aan) voor het nieuwe bord. |
@@ -266,7 +268,7 @@ Op de branch `android-app` staat V8: V7 plus een eigen WiFi-netwerk waarmee de A
 | [docs/V10_MATRIXBOARD.md](docs/V10_MATRIXBOARD.md) | V10: nieuw matrixboard en mapping bepalen met de testsketch |
 | [docs/V11_ROBUUSTHEID.md](docs/V11_ROBUUSTHEID.md) | V11: waarom en hoe de timer nooit stopt door WiFi/app, herstel na een crash, testen |
 
-**Welke firmware?** Bord met normaal relais → **V8**. Bord met PWM-relais (RC-schakelaar) → **V9**. PWM-relais + nieuw matrixboard (3 digits, enable actief-laag) → **V11** (V10 is dezelfde hardware zonder de robuustheidsmaatregelen). Verder zijn V8 en V9 gelijk en werken ze allebei met de app.
+**Welke firmware?** Bord met normaal relais → **V8**. Bord met PWM-relais (RC-schakelaar) → **V9**. PWM-relais + nieuw matrixboard (3 digits, enable actief-laag) → **V12** (V11 is gelijk maar met het lampje van de toeterknop andersom; V10 zonder de robuustheidsmaatregelen). Verder zijn V8 en V9 gelijk en werken ze allebei met de app.
 
 Standaard: WiFi `ZZ-WedstrijdTimer` / `ZZstart2026`, IP `192.168.4.1`, beheerders-PIN `1234`.
 
