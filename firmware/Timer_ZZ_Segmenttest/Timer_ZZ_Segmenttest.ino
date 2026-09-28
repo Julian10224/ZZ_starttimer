@@ -1,11 +1,11 @@
 // Timer ZZ - Segmenttest voor het matrixboard (3 digits, RJ45-D-4bits-kaart)
 //
-// Doel: nagaan welke bit welk segment is en welk register welk digit is.
-// Open de seriële monitor op 115200 baud; bij elke stap wordt gemeld wat er brandt.
-// Het kleine TM1637-display toont het fase- en stapnummer, zodat het ook zonder laptop kan.
+// Doel: nagaan welke bit welk segment is.
+// Het kleine TM1637-display toont fase en stap, bijv. "2-05" = fase 2, bit 5.
+// Geen seriële uitvoer.
 //
-// Fase 1  Looplicht:      elk digit afzonderlijk, bit 0 t/m 7, daarna het volgende digit.
-//                         -> laat zien welk register welk digit is.
+// Fase 1  Looplicht:      van links naar rechts (minuten, tientallen, eenheden),
+//                         per digit bit 0 t/m 7. TM1637: "1-db" = digit d (1 = links), bit b.
 // Fase 2  Zelfde segment: bit 0 t/m 7, steeds op alle 3 digits tegelijk.
 //                         -> noteer per bit welk segment (a-g, dp) brandt.
 // Fase 3  Cijfers:        0 t/m 9 op alle 3 digits met de mapping hieronder.
@@ -45,8 +45,9 @@
 
 TM1637Display display(CLK, DIO);
 
-// Schrijft drie bytes naar het board. regs[0] wordt als eerste ingeschoven
-// (in Timer_ZZ_V10 is dat de eenheden van de seconden).
+// Schrijft drie bytes naar het board. regs[0] wordt als eerste ingeschoven en komt in
+// het verste register: het rechter digit (eenheden seconden), net als in de timer.
+// regs[AANTAL_DIGITS - 1] wordt als laatste ingeschoven: het linker digit (minuten).
 void schrijf(const byte regs[AANTAL_DIGITS]) {
   digitalWrite(latchPin, LOW);
   for (int i = 0; i < AANTAL_DIGITS; i++) {
@@ -84,7 +85,6 @@ byte cijfer(int n) {
 }
 
 void setup() {
-  Serial.begin(115200);
   pinMode(dataPin, OUTPUT);
   pinMode(clockPin, OUTPUT);
   pinMode(latchPin, OUTPUT);
@@ -93,47 +93,38 @@ void setup() {
   display.setBrightness(0x0f);
   alle(0);
   delay(500);
-  Serial.println();
-  Serial.println("Timer ZZ segmenttest - 3 digits");
 }
 
 void loop() {
-  // Fase 1: looplicht, per digit bit 0..7
-  Serial.println("\n== Fase 1: looplicht per digit ==");
-  for (int d = 0; d < AANTAL_DIGITS; d++) {
+  // Fase 1: looplicht van links naar rechts, per digit bit 0..7
+  for (int pos = 0; pos < AANTAL_DIGITS; pos++) {       // pos 0 = links (minuten)
+    int reg = AANTAL_DIGITS - 1 - pos;                   // links = laatst ingeschoven
     for (int bit = 0; bit < 8; bit++) {
       byte regs[AANTAL_DIGITS] = {0};
-      regs[d] = 1 << bit;
+      regs[reg] = 1 << bit;
       schrijf(regs);
-      toonStap(1, d * 10 + bit);
-      Serial.printf("Register %d (%s ingeschoven), bit %d\n", d + 1,
-                    d == 0 ? "eerst" : (d == AANTAL_DIGITS - 1 ? "laatst" : "als tweede"), bit);
+      toonStap(1, (pos + 1) * 10 + bit);
       delay(STAP_MS);
     }
   }
 
   // Fase 2: zelfde bit op alle digits
-  Serial.println("\n== Fase 2: zelfde segment op alle digits ==");
-  Serial.println("Noteer per bit welk segment brandt (a=boven, b=rechtsboven, c=rechtsonder,");
-  Serial.println("d=onder, e=linksonder, f=linksboven, g=midden, dp=punt).");
+  // Noteer per bit welk segment brandt (a=boven, b=rechtsboven, c=rechtsonder,
+  // d=onder, e=linksonder, f=linksboven, g=midden, dp=punt).
   for (int bit = 0; bit < 8; bit++) {
     alle(1 << bit);
     toonStap(2, bit);
-    Serial.printf("Bit %d op alle digits\n", bit);
     delay(STAP_MS * 2);
   }
 
   // Fase 3: cijfers 0..9 met de ingevulde mapping
-  Serial.println("\n== Fase 3: cijfers 0-9 met de ingevulde mapping ==");
   for (int n = 0; n <= 9; n++) {
     alle(cijfer(n));
     toonStap(3, n);
-    Serial.printf("Cijfer %d\n", n);
     delay(STAP_MS);
   }
 
   // Fase 4: alles aan, alles uit
-  Serial.println("\n== Fase 4: alles aan / alles uit ==");
   alle(0xFF);
   toonStap(4, 1);
   delay(STAP_MS * 2);

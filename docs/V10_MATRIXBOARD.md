@@ -17,9 +17,9 @@ Extra instellingen bovenaan de sketch:
 
 Voor de "RJ45-D-4bits"-kaart heb ik geen datasheet of mapping kunnen vinden. De standaardwaarden in V10 zijn daarom die van V3–V9. Bepaal de juiste mapping met de sketch **`firmware/Timer_ZZ_Segmenttest`**:
 
-1. Upload `Timer_ZZ_Segmenttest` en open de seriële monitor (115200 baud). Het kleine TM1637-display toont ook fase en stap, bijvoorbeeld `2-05`.
-2. **Fase 1, looplicht:** per register bit 0 t/m 7. Hier zie je welk register welk digit is. In V10 wordt de eenheden-seconde als eerste ingeschoven, de minuut als laatste.
-3. **Fase 2, zelfde segment:** bit 0 t/m 7 op alle 3 digits tegelijk. Noteer per bit welk segment brandt:
+1. Upload `Timer_ZZ_Segmenttest` via de Arduino IDE. De test gebruikt de seriële poort niet; het kleine TM1637-display toont fase en stap, bijvoorbeeld `2-05`.
+2. **Fase 1, looplicht:** van links naar rechts (minuten, tientallen seconden, eenheden seconden), per digit bit 0 t/m 7. Het TM1637-display toont `1-db`: digit `d` (1 = links) en bit `b`. De eerst ingeschoven byte komt rechts terecht; de timer schuift daarom eerst de eenheden seconden in en als laatste de minuten.
+3. **Fase 2, zelfde segment:** bit 0 t/m 7 op alle 3 digits tegelijk, elk 1,4 s. Noteer per bit welk segment brandt (om te printen: [Segmenttest_fase2_invulblad.pdf](Segmenttest_fase2_invulblad.pdf)):
 
    | Bit | Segment |
    |---|---|
@@ -42,4 +42,4 @@ Brandt in fase 2 steeds alles **behalve** één segment, dan werkt het board omg
 
 Staan de digits in de verkeerde volgorde (bijvoorbeeld de minuut rechts), pas dan in `updateShiftRegisterDisplay()` de volgorde van de drie `shiftOut`-regels aan.
 
-Beide sketches compileren met ESP32-core 3.3.12: V10 gebruikt 951 110 bytes (72%), de testsketch 273 872 bytes (20%).
+Beide sketches compileren met ESP32-core 3.3.12: V10 gebruikt 951 110 bytes (72%), de testsketch 259 088 bytes (19%).
