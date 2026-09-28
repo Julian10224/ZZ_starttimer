@@ -356,7 +356,7 @@ private fun FlagSettingsDialog(vm: TimerViewModel, initial: FlagSettings, onDism
                 Text("Aankondigingen", fontWeight = FontWeight.Medium)
                 SwitchRow("Elke minuut", everyMinute) { everyMinute = it }
                 SwitchRow("Laatste minuut elke 10 seconden", every10s) { every10s = it }
-                SwitchRow("Laatste 10 seconden aftellen", lastTen) { lastTen = it }
+                SwitchRow("10 seconden aftellen vóór elk sein", lastTen) { lastTen = it }
                 OutlinedButton(onClick = vm.flags::testVoice, modifier = Modifier.fillMaxWidth()) { Text("Stem testen") }
             }
         },
