@@ -1,4 +1,4 @@
-# Vlaggenpagina (app 1.4)
+# Vlaggenpagina (app 1.5)
 
 De app heeft een tweede pagina, **Vlaggen**, bereikbaar via de navigatiebalk onderaan (Timer · Vlaggen). Die toont de seinvlaggen van de startprocedure en telt hardop af in het Nederlands, op basis van de tijd van de timer zelf. Het gedrag is gebaseerd op de app *Start Timer* (Leonenko); vlaggen, geluiden en teksten zijn zelf gemaakt en niet overgenomen.
 
@@ -27,6 +27,20 @@ De app heeft een tweede pagina, **Vlaggen**, bereikbaar via de navigatiebalk ond
 - De stem spreekt 0,25 s vóór de seconde, zodat het woord samenvalt met het omslaan van het display en de hoorn.
 - De stem loopt door als je naar de Timer-pagina gaat. Hij gebruikt de Nederlandse stem van de telefoon; is die niet geïnstalleerd, dan meldt de app dat (Instellingen van Android → Tekst-naar-spraak).
 - Opent de app midden in een procedure, dan zegt de stem pas iets bij het volgende moment; gemiste aankondigingen worden niet ingehaald.
+
+## Zonder verbinding met de klok
+
+De vlaggen, de stem en de seinen werken ook als de telefoon niet met de klok verbonden is. De telefoon telt dan zelf.
+
+- Bovenaan staat een rode melding **○ KLOK NIET VERBONDEN**.
+- **START in de app**:
+  - *10 s aftellen*: de stem telt "Tien … Eén", in beeld staat "Druk bij 0 op START van de klok"; op 0 verschijnt groot **DRUK NU OP START VAN DE KLOK** en zegt de stem "Druk nu op start". Druk dan op de startknop van de klok, zodat klok en telefoon gelijk lopen.
+  - *Direct*: meteen **DRUK NU OP START VAN DE KLOK**.
+- **STOP/RESET** in de app stopt de telefoon en toont **DRUK OP RESET VAN DE KLOK**.
+- **Seinen**: de hoorn kan niet via de app; er verschijnt "Geef zelf 1 geluidssein" of "DRUK OP RESET VAN DE KLOK · geef zelf 2 geluidsseinen". Na het neerhalen van de uitstelwimpel of eerste vervangende telt de telefoon 1 minuut af en geeft aan wanneer START van de klok moet.
+- **Geplande starts** die al op de klok stonden, voert de klok zelf uit; de telefoon start de vlaggen op hetzelfde moment en meldt "Geplande start: de klok start zelf".
+- **Verbinding valt weg tijdens een procedure**: de telefoon loopt naadloos verder vanaf de tijd van de klok. **Komt de verbinding terug**, dan volgen de vlaggen weer de klok. Loopt de klok dan niet (START niet gedrukt), dan meldt de app dat.
+- De Timer-pagina toont zonder verbinding de tijd van de telefoon.
 
 ## Seinen (onderbrekingen)
 
