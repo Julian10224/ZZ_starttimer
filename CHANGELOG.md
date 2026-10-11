@@ -4,6 +4,14 @@ Alle wijzigingen per versie. De versies staan in `firmware/Timer_ZZ_Vx/` en als 
 
 ---
 
+## App 1.9 — nieuwe vormgeving
+
+- Volledig nieuwe, rustige vormgeving van de Android-app; werking, protocol en opgeslagen instellingen zijn gelijk aan 1.8.
+- Centraal designsysteem (`ui/Theme.kt`, `ui/Components.kt`): kleuren voor licht en donker thema, typografie, afstanden, hoekafrondingen en animatieduur.
+- Gegroepeerde lijsten, grote paginatitels, segmentknoppen, eigen tabbalk, vaste cijferbreedte voor tijden.
+- Liggend compactere titel en tabbalk; respecteert "Animaties verwijderen".
+- Zie [docs/ANDROID_APP.md](docs/ANDROID_APP.md#vormgeving-vanaf-app-19).
+
 ## V7B — 5 of 3 minuten doorstart
 
 - **Modusschakelaar** (ingelezen bij START): open (`HIGH`) = 5 minuten doorstart, gesloten (`LOW`) = 3 minuten doorstart. Beide herhalen tot reset; de stand "één keer" vervalt.
