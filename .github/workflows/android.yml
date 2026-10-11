@@ -1,12 +1,12 @@
 name: Android app
 
-# Bouwt de APK bij elke push naar de branch android-app (als er iets in android/ wijzigt).
+# Bouwt de APK bij elke push naar de branch tonnie (als er iets in android/ wijzigt).
 # De APK staat daarna onder Actions → run → Artifacts.
 # Handmatig met "release" aangevinkt: maakt ook een GitHub-release met de APK.
 
 on:
   push:
-    branches: [android-app]
+    branches: [tonnie]
     paths:
       - "android/**"
       - ".github/workflows/android.yml"

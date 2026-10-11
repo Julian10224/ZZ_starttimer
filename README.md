@@ -4,7 +4,7 @@ Firmware voor een ESP32-gestuurde starttimer met hoornrelais, twee displays en e
 
 Deze repository bevat alle zeven ontwikkelversies. Elke versie staat in een eigen map én als eigen commit met tag (`v1` t/m `v7`) in de git-historie, zodat je de verschillen tussen versies direct kunt vergelijken.
 
-> **Branch `android-app`:** V8 met WiFi en de Android-app *ZZ Wedstrijd Timer* — zie [V8 en Android-app](#v8-en-android-app).
+> **Branch `tonnie`:** V8 met WiFi en de Android-app *ZZ Wedstrijd Timer* — zie [V8 en Android-app](#v8-en-android-app).
 >
 > **Laatste versie op main: V7** (`firmware/Timer_ZZ_V7`). V1 en V2 compileren niet zonder aanpassing (zie [Bekende problemen](#bekende-problemen)).
 
@@ -42,13 +42,13 @@ timer-zz/
     ├── Timer_ZZ_V5/Timer_ZZ_V5.ino
     ├── Timer_ZZ_V6/Timer_ZZ_V6.ino
     ├── Timer_ZZ_V7/Timer_ZZ_V7.ino
-    ├── Timer_ZZ_V8/Timer_ZZ_V8.ino   ← branch android-app, bord met normaal relais
-    ├── Timer_ZZ_V9/Timer_ZZ_V9.ino   ← branch android-app, bord met PWM-relais
-    ├── Timer_ZZ_V10/Timer_ZZ_V10.ino ← branch android-app, PWM-relais + nieuw matrixboard (3 digits)
-    ├── Timer_ZZ_V11/Timer_ZZ_V11.ino ← branch android-app, als V10, robuust voor wedstrijden
-    ├── Timer_ZZ_V12/Timer_ZZ_V12.ino ← branch android-app, als V11, lampje toeterknop omgekeerd
+    ├── Timer_ZZ_V8/Timer_ZZ_V8.ino   ← branch tonnie, bord met normaal relais
+    ├── Timer_ZZ_V9/Timer_ZZ_V9.ino   ← branch tonnie, bord met PWM-relais
+    ├── Timer_ZZ_V10/Timer_ZZ_V10.ino ← branch tonnie, PWM-relais + nieuw matrixboard (3 digits)
+    ├── Timer_ZZ_V11/Timer_ZZ_V11.ino ← branch tonnie, als V10, robuust voor wedstrijden
+    ├── Timer_ZZ_V12/Timer_ZZ_V12.ino ← branch tonnie, als V11, lampje toeterknop omgekeerd
     └── Timer_ZZ_Segmenttest/         ← testsketch voor de segmentmapping van het matrixboard
-android/                           ← Android-app (branch android-app)
+android/                           ← Android-app (branch tonnie)
 docs/                              ← analyse V8, protocol, app, testplan
 ```
 
@@ -239,11 +239,11 @@ In V7 schuift `updateShiftRegisterDisplay()` dezelfde drie bytes twee keer in (z
 | **V4** | `Bounce2`-debouncing i.p.v. interrupts, slaapmodus, nieuwe modus: eerst optellen tot 4:00 en dan aftellen vanaf 5:00. Driftvrije tijdbasis. |
 | **V5** | Reset direct bij indrukken, handmatige hoorn ook toegestaan tussen 5:00 en 4:00, auto-slaap na 6 min, pinnen `horn_button`/`timer_switch` gewisseld. |
 | **V6** | Instelbare relaisduur: 0,5 s bij start en 4:00, 1 s bij 1:00 en 0:00. |
-| **V12** *(branch android-app)* | V11 met omgekeerd lampje in de handmatige toeterknop (GPIO 22): `HIGH` = toeter toegestaan, `LOW` = geblokkeerd. |
-| **V11** *(branch android-app)* | V10 robuust gemaakt: netwerk in eigen taak (timer wacht nooit op WiFi), watchdog op de timer, herstel van een lopende procedure na een crash. |
-| **V10** *(branch android-app)* | V9 voor het nieuwe matrixboard: enable actief-laag, 3 digits, instelbare segmentmapping. Plus testsketch `Timer_ZZ_Segmenttest`. |
-| **V9** *(branch android-app)* | V8 met PWM-relais (servopuls 50 Hz: 1 ms uit, 2 ms aan) voor het nieuwe bord. |
-| **V8** *(branch android-app)* | WiFi access point + WebSocket voor de Android-app, geplande starts, timer op absolute tijd, relais-timeout-fout opgelost. |
+| **V12** *(branch tonnie)* | V11 met omgekeerd lampje in de handmatige toeterknop (GPIO 22): `HIGH` = toeter toegestaan, `LOW` = geblokkeerd. |
+| **V11** *(branch tonnie)* | V10 robuust gemaakt: netwerk in eigen taak (timer wacht nooit op WiFi), watchdog op de timer, herstel van een lopende procedure na een crash. |
+| **V10** *(branch tonnie)* | V9 voor het nieuwe matrixboard: enable actief-laag, 3 digits, instelbare segmentmapping. Plus testsketch `Timer_ZZ_Segmenttest`. |
+| **V9** *(branch tonnie)* | V8 met PWM-relais (servopuls 50 Hz: 1 ms uit, 2 ms aan) voor het nieuwe bord. |
+| **V8** *(branch tonnie)* | WiFi access point + WebSocket voor de Android-app, geplande starts, timer op absolute tijd, relais-timeout-fout opgelost. |
 | **V7** | Optelmodus vervangen door herhaalmodus (elke 5 min een nieuwe cyclus), tweede groot display, beginstand altijd 5:00, signaalcontrole elke loop-doorgang. |
 
 Zie [CHANGELOG.md](CHANGELOG.md) voor de volledige beschrijving per versie. Verschillen bekijken kan ook met git, bijvoorbeeld:
@@ -256,7 +256,7 @@ git diff v6 v7 -- firmware/
 
 ## V8 en Android-app
 
-Op de branch `android-app` staat V8: V7 plus een eigen WiFi-netwerk waarmee de Android-app *ZZ Wedstrijd Timer* de timer bedient en precies dezelfde tijd toont. De timer blijft volledig zelfstandig werken; de app is een extra afstandsbediening en display.
+Op de branch `tonnie` staat V8: V7 plus een eigen WiFi-netwerk waarmee de Android-app *ZZ Wedstrijd Timer* de timer bedient en precies dezelfde tijd toont. De timer blijft volledig zelfstandig werken; de app is een extra afstandsbediening en display.
 
 | Document | Inhoud |
 |---|---|
