@@ -8,6 +8,8 @@ Deze repository bevat alle zeven ontwikkelversies. Elke versie staat in een eige
 >
 > **V7A:** V7 met WiFi en de Android-app *ZZ Wedstrijd Timer* — zie [V7A en Android-app](#v7a-en-android-app).
 >
+> **V7B:** V7A met twee modi: schakelaar open = **5 minuten doorstart**, gesloten = **3 minuten doorstart** (app 1.8).
+>
 > **Branches:** `ZZ` (deze branch: V1–V7 en V7A) en `tonnie` (V8–V12 voor het bord met PWM-relais en het nieuwe matrixboard).
 
 ---
@@ -47,7 +49,8 @@ timer-zz/
     ├── Timer_ZZ_V5/Timer_ZZ_V5.ino
     ├── Timer_ZZ_V6/Timer_ZZ_V6.ino
     ├── Timer_ZZ_V7/Timer_ZZ_V7.ino
-    └── Timer_ZZ_V7A/Timer_ZZ_V7A.ino ← V7 met WiFi en de Android-app
+    ├── Timer_ZZ_V7A/Timer_ZZ_V7A.ino ← V7 met WiFi en de Android-app
+    └── Timer_ZZ_V7B/Timer_ZZ_V7B.ino ← V7A met 5 of 3 minuten doorstart
 ```
 
 Elke versie staat in een map met dezelfde naam als het `.ino`-bestand; de Arduino IDE vereist dat. De code zelf is ongewijzigd ten opzichte van de originele bestanden — alleen de bestandsnamen zijn gelijkgetrokken (`Timer_ZZ.ino` → `Timer_ZZ_V1.ino`, `Timer_ZZV5.ino` → `Timer_ZZ_V5.ino`, `Timer_ZZV6.ino` → `Timer_ZZ_V6.ino`, `Timer_ZZV7.ino` → `Timer_ZZ_V7.ino`).
@@ -239,6 +242,7 @@ In V7 schuift `updateShiftRegisterDisplay()` dezelfde drie bytes twee keer in (z
 | **V6** | Instelbare relaisduur: 0,5 s bij start en 4:00, 1 s bij 1:00 en 0:00. |
 | **V7** | Optelmodus vervangen door herhaalmodus (elke 5 min een nieuwe cyclus), tweede groot display, beginstand altijd 5:00, signaalcontrole elke loop-doorgang. |
 | **V7A** | V7 met WiFi access point + WebSocket voor de Android-app, geplande starts, beheerders-PIN, timer op absolute tijd, relais-timeout-fout opgelost, robuuste opbouw (netwerk in eigen taak, watchdog, herstel na crash). |
+| **V7B** | V7A met twee modi via de schakelaar: open = 5 minuten doorstart (hoorn 5:00, 4:00, 1:00, 0:00), gesloten = 3 minuten doorstart (hoorn 3:00, 1:00, 0:00). Beide herhalen tot reset; de stand "één keer" vervalt. Nodig: app 1.8. |
 
 Zie [CHANGELOG.md](CHANGELOG.md) voor de volledige beschrijving per versie. Verschillen bekijken kan ook met git, bijvoorbeeld:
 
@@ -260,7 +264,9 @@ V7A is V7 plus een eigen WiFi-netwerk waarmee de Android-app *ZZ Wedstrijd Timer
 | [docs/VLAGGEN.md](docs/VLAGGEN.md) | Vlaggenpagina in de app |
 | [docs/TESTPLAN.md](docs/TESTPLAN.md) | Testplan V7A + app |
 
-V7A heeft twee extra bibliotheken nodig: **WebSockets** (Markus Sattler, 2.7.2) en **ArduinoJson** (7.4.3).
+**V7B** voegt de modi 5 en 3 minuten doorstart toe (zie [CHANGELOG.md](CHANGELOG.md) en [docs/VLAGGEN.md](docs/VLAGGEN.md)); gebruik daarmee app 1.8.
+
+V7A en V7B hebben twee extra bibliotheken nodig: **WebSockets** (Markus Sattler, 2.7.2) en **ArduinoJson** (7.4.3).
 
 ---
 

@@ -99,7 +99,8 @@ class FlagController(
         val arr = org.json.JSONArray(prefs.getString(K_PHONE_SCHED, "[]"))
         (0 until arr.length()).map { i ->
             val o = arr.getJSONObject(i)
-            Schedule(o.getLong("id"), o.getLong("press"), o.getLong("target"), o.getInt("kind"))
+            Schedule(o.getLong("id"), o.getLong("press"), o.getLong("target"), o.getInt("kind"),
+                TimerMath.proc(o.optInt("proc", TimerMath.PROCEDURE_S)))
         }.sortedBy { it.pressEpoch }
     }.getOrDefault(emptyList())
 
@@ -108,15 +109,16 @@ class FlagController(
         _phoneSchedules.value = sorted
         val arr = org.json.JSONArray()
         sorted.forEach {
-            arr.put(org.json.JSONObject().put("id", it.id).put("press", it.pressEpoch).put("target", it.targetEpoch).put("kind", it.kind))
+            arr.put(org.json.JSONObject().put("id", it.id).put("press", it.pressEpoch).put("target", it.targetEpoch)
+                .put("kind", it.kind).put("proc", it.procS))
         }
         prefs.edit().putString(K_PHONE_SCHED, arr.toString()).apply()
     }
 
-    fun savePhoneSchedule(id: Long?, press: Long, target: Long, kind: Int) {
+    fun savePhoneSchedule(id: Long?, press: Long, target: Long, kind: Int, procS: Int) {
         val keep = _phoneSchedules.value.filter { it.id != id }
         val newId = if (id != null && id < 0) id else -(System.currentTimeMillis())
-        setPhoneSchedules(keep + Schedule(newId, press, target, kind))
+        setPhoneSchedules(keep + Schedule(newId, press, target, kind, TimerMath.proc(procS)))
     }
 
     fun deletePhoneSchedule(id: Long) = setPhoneSchedules(_phoneSchedules.value.filter { it.id != id })
@@ -128,6 +130,7 @@ class FlagController(
             put("press_epoch", s.pressEpoch)
             put("target_epoch", s.targetEpoch)
             put("kind", s.kind)
+            put("proc_s", s.procS)
         }
         if (!ack.ok) {
             message(ack.error ?: "Op de klok zetten mislukt.")
@@ -153,6 +156,10 @@ class FlagController(
     private var local = false
     private var localStart: Long? = null          // telefoontijd van START (5:00)
     private var localRepeat = false
+    private var localRunProc = TimerMath.PROCEDURE_S    // procedure van de lopende telefoontelling
+    /** Laatst bekende stand van de modusschakelaar (300 = 5 min, 180 = 3 min), ook zonder verbinding. */
+    var switchProc = TimerMath.proc(prefs.getInt(K_SWITCH_PROC, TimerMath.PROCEDURE_S))
+        private set
     private var localPress: Long? = null          // telefoontijd van een door de app ingezette start
     private var localPressManual = false          // bij die start moet START van de klok worden gedrukt
     private var knownSchedules: List<Schedule> = emptyList()
@@ -165,6 +172,7 @@ class FlagController(
     private var curNow = 0L
     private var curStart = 0L
     private var curRunning = false
+    private var curProc = TimerMath.PROCEDURE_S
 
     private fun showBanner(text: String, urgent: Boolean, ms: Long) {
         banner = text
@@ -183,7 +191,13 @@ class FlagController(
 
         if (s != null) {
             knownSchedules = s.schedules
-            if (!local) localRepeat = if (s.running) s.repeat else s.switchRepeat
+            if (!local) {
+                localRepeat = if (s.running) s.repeat else s.switchRepeat
+                if (s.switchProcS != switchProc) {
+                    switchProc = s.switchProcS
+                    prefs.edit().putInt(K_SWITCH_PROC, switchProc).apply()
+                }
+            }
         }
 
         // Wisselen tussen klok en telefoon
@@ -202,6 +216,7 @@ class FlagController(
             // Liep de klok? Dan loopt de telefoon naadloos verder vanaf dezelfde tijd.
             val delta = if (espNow != null) phoneNow - espNow else 0L
             localStart = if (s?.running == true && espNow != null) s.startMs + delta else null
+            localRunProc = s?.procS ?: switchProc
             lastStartTl = lastStartTl?.let { it + delta }
             if (interrupt == Interrupt.INDIVIDUAL_RECALL) xSinceTl += delta
             lastK = -1
@@ -220,12 +235,17 @@ class FlagController(
                 }
                 local -> {
                     localStart = due.pressEpoch
-                    showBanner("DRUK NU OP START VAN DE KLOK", true, 4000)
+                    localRunProc = due.procS
+                    showBanner("DRUK NU OP START VAN DE KLOK (${TimerMath.procLabel(due.procS)})", true, 4000)
                 }
                 else -> scope.launch {
-                    // Verbonden: de app geeft de start aan de klok
+                    // Verbonden: de app geeft de start aan de klok; de klok volgt de schakelaar
                     val ack = client.command("start")
                     if (!ack.ok) message(ack.error ?: "Starten mislukt.")
+                    else if (due.procS != s?.switchProcS) message(
+                        "Let op: telefoonstart was ${TimerMath.procLabel(due.procS)}, de klok start " +
+                            "${TimerMath.procLabel(s?.switchProcS ?: TimerMath.PROCEDURE_S)} (schakelaar)."
+                    )
                 }
             }
         }
@@ -236,12 +256,14 @@ class FlagController(
         val startMs: Long
         val repeat: Boolean
         val ledPanel: Boolean
+        val proc: Int
         if (!local) {
             now = espNow!!
             running = s!!.running
             startMs = s.startMs
             repeat = s.repeat
             ledPanel = s.ledPanel
+            proc = s.procS
         } else {
             now = phoneNow
             // Door de app ingezette start of geplande start bereikt?
@@ -249,29 +271,33 @@ class FlagController(
             if (localStart == null && lp != null && phoneNow >= lp) {
                 localStart = lp
                 localPress = null
+                localRunProc = switchProc
                 if (localPressManual) showBanner("DRUK NU OP START VAN DE KLOK", true, 4000)
             }
             if (localStart == null) {
                 knownSchedules.firstOrNull { it.pressEpoch <= phoneNow && it.pressEpoch >= phoneNow - 2000 && it.pressEpoch !in doneSchedules }?.let {
                     doneSchedules += it.pressEpoch
                     localStart = it.pressEpoch
+                    localRunProc = it.procS
                     showBanner("Geplande start: de klok start zelf", false, 4000)
                 }
             }
             // Eenmalige procedure afgelopen
             val ls = localStart
-            if (ls != null && !localRepeat && now - ls >= 301_000L) {
-                lastStartTl = ls + 300_000L
+            if (ls != null && !localRepeat && now - ls >= (localRunProc + 1) * 1000L) {
+                lastStartTl = ls + localRunProc * 1000L
                 localStart = null
             }
             running = localStart != null
             startMs = localStart ?: 0L
             repeat = localRepeat
             ledPanel = true
+            proc = if (running) localRunProc else switchProc
         }
         curNow = now
         curStart = startMs
         curRunning = running
+        curProc = proc
 
         if (running && !wasRunning) {
             // Nieuwe procedure gestart (knop, app, of geplande start na uitstel/terugroep)
@@ -287,7 +313,7 @@ class FlagController(
         if (running) {
             val elapsed = now - startMs
             k = Math.floorDiv(elapsed, 1000L)
-            if (k >= 300) lastStartTl = startMs + (k / 300) * 300_000L
+            if (k >= proc) lastStartTl = startMs + (k / proc) * proc * 1000L
 
             // Aankondigingen: iets vóór de seconde, zodat de stem gelijk valt met het display
             val kl = Math.floorDiv(elapsed + VOICE_LEAD_MS, 1000L)
@@ -297,10 +323,10 @@ class FlagController(
                     val alreadySpoken = phoneNow - warningSpokenAt < 3000
                     for (kk in 0L..kl) {
                         if (kk == 0L && alreadySpoken) continue
-                        FlagLogic.announcement(kk, repeat, set, classOffset)?.let { speak(it) }
+                        FlagLogic.announcement(kk, repeat, set, classOffset, proc)?.let { speak(it) }
                     }
                 } else if (kl == lastK + 1) {
-                    FlagLogic.announcement(kl, repeat, set, classOffset)?.let { speak(it) }
+                    FlagLogic.announcement(kl, repeat, set, classOffset, proc)?.let { speak(it) }
                 }
                 lastK = kl
             }
@@ -314,10 +340,12 @@ class FlagController(
 
         // Aftellen tot een start die eraan komt (START met aftellen, hervatten, geplande start)
         var pendingIn: Int? = null
+        var pendingProcS = switchProc
         var manual = false
         if (!running) {
             val press = pendingPress(phoneNow)
             if (press != null) {
+                pendingProcS = pendingProc(press)
                 manual = local && ((press == localPress && localPressManual) ||
                     _phoneSchedules.value.any { it.pressEpoch == press })
                 pendingIn = ceilDiv(press - phoneNow, 1000L).toInt()
@@ -330,7 +358,7 @@ class FlagController(
                             speak(FlagLogic.warningIn10(set.className(pendingOffset ?: 0)))
                         left in 1..5 && (set.countdownStart || manual) -> speak(FlagLogic.countWord(left))
                         left == 0 && lastPreSpoken in 1..3 -> {
-                            val w = FlagLogic.warningText(set.className(pendingOffset ?: 0))
+                            val w = FlagLogic.warningText(set.className(pendingOffset ?: 0), set, pendingProcS)
                             speak(if (manual) "Druk nu op start. $w" else w)
                             warningSpokenAt = phoneNow
                         }
@@ -348,7 +376,7 @@ class FlagController(
         }
 
         if (phoneNow > bannerUntil) banner = null
-        _state.value = buildState(now, running, k, repeat, ledPanel, set, pendingIn)
+        _state.value = buildState(now, running, k, repeat, ledPanel, set, pendingIn, proc, pendingProcS)
     }
 
     /** Eerstvolgende start die eraan komt (telefoontijd), of null. */
@@ -360,15 +388,21 @@ class FlagController(
         return listOfNotNull(fromSchedules, fromPhone, lp).minOrNull()
     }
 
+    /** Procedure van de start op [press]: van de geplande start, anders de stand van de schakelaar. */
+    private fun pendingProc(press: Long): Int =
+        (knownSchedules.firstOrNull { it.pressEpoch == press } ?: _phoneSchedules.value.firstOrNull { it.pressEpoch == press })
+            ?.procS ?: switchProc
+
     private fun ceilDiv(a: Long, b: Long): Long = -Math.floorDiv(-a, b)
 
     private fun buildState(
         now: Long, running: Boolean, k: Long, repeat: Boolean, ledPanel: Boolean,
-        set: FlagSettings, pendingIn: Int?,
+        set: FlagSettings, pendingIn: Int?, proc: Int, pendingProcS: Int,
     ): FlagState {
         val since = lastStartTl?.let { now - it }
         val justStarted = since != null && since in 0..FlagLogic.X_MAX_MS
         val base = FlagState(
+            procS = if (pendingIn != null && !running) pendingProcS else proc,
             interrupt = interrupt,
             running = running,
             local = local,
@@ -396,16 +430,16 @@ class FlagController(
                 nextText = "Vlag neer: 1 geluidssein, waarschuwingssein 1 minuut later",
             )
             pendingIn != null && !running -> base.copy(
-                upcoming = FlagLogic.upcomingPending(pendingIn, set.className(pendingOffset ?: 0), set),
+                upcoming = FlagLogic.upcomingPending(pendingIn, set.className(pendingOffset ?: 0), set, pendingProcS),
                 phase = Phase.RESUMING, timeText = FlagLogic.mmss(pendingIn), resuming = true,
                 className = set.className(pendingOffset ?: 0),
                 nextText = "Waarschuwingssein over ${FlagLogic.mmss(pendingIn)} · ${set.className(pendingOffset ?: 0)}",
             )
             running -> {
-                val rem = FlagLogic.remainingForK(k)
-                val cycle = FlagLogic.cycleForK(k)
+                val rem = FlagLogic.remainingForK(k, proc)
+                val cycle = FlagLogic.cycleForK(k, proc)
                 val cls = set.className(classOffset + cycle)
-                val (flags, next, step) = FlagLogic.runningFlags(rem, cls, set)
+                val (flags, next, step) = FlagLogic.runningFlags(rem, cls, set, proc)
                 val phase = when (step) {
                     0 -> Phase.WARNING
                     1 -> Phase.PREPARATORY
@@ -417,7 +451,7 @@ class FlagController(
                     listOf(UpcomingFlag(ShownFlag(FlagKind.X, "X-vlag"), false, ((FlagLogic.X_MAX_MS - (now - xSinceTl)) / 1000).toInt().coerceAtLeast(0)))
                     else emptyList()
                 base.copy(
-                    upcoming = (FlagLogic.upcomingRunning(rem, cls, nextCls, set) + xDown).sortedBy { it.inSeconds },
+                    upcoming = (FlagLogic.upcomingRunning(rem, cls, nextCls, set, proc) + xDown).sortedBy { it.inSeconds },
                     phase = phase, timeText = TimerMath.format(rem), startNumber = cycle + 1, className = cls,
                     flags = flags + xFlag, nextText = next, timelineStep = step,
                 )
@@ -427,7 +461,7 @@ class FlagController(
                     listOf(UpcomingFlag(ShownFlag(FlagKind.X, "X-vlag"), false, ((FlagLogic.X_MAX_MS - (now - xSinceTl)) / 1000).toInt().coerceAtLeast(0)))
                     else emptyList(),
                 phase = if (justStarted) Phase.STARTED else Phase.IDLE,
-                timeText = TimerMath.format(300),
+                timeText = TimerMath.format(TimerMath.proc(proc)),
                 className = set.className(0),
                 flags = xFlag,
                 timelineStep = if (justStarted) 3 else -1,
@@ -471,6 +505,7 @@ class FlagController(
             put("press_epoch", press)
             put("target_epoch", press)
             put("kind", 1)
+            put("proc_s", client.status.value?.switchProcS ?: switchProc)   // zoals START op de klok
         }
         if (!ack.ok) client.silentTargets.remove(press)
         return if (ack.ok) null else ack.error ?: "Kon de start niet plannen."
@@ -512,8 +547,9 @@ class FlagController(
             val phoneNow = System.currentTimeMillis()
             localStart = phoneNow
             localPress = null
+            localRunProc = switchProc
             showBanner("DRUK NU OP START VAN DE KLOK", true, 4000)
-            speak("Druk nu op start. " + FlagLogic.warningText(_settings.value.className(pendingOffset ?: 0)))
+            speak("Druk nu op start. " + FlagLogic.warningText(_settings.value.className(pendingOffset ?: 0), _settings.value, switchProc))
             warningSpokenAt = phoneNow
             return@action
         }
@@ -575,7 +611,7 @@ class FlagController(
     /** Eerste vervangende op met twee geluidsseinen (RvW 29.2). De timer stopt. */
     fun generalRecall() = action {
         val startTl = lastStartTl ?: return@action
-        val recalledCycle = ((startTl - curStart) / 300_000L - 1).toInt().coerceAtLeast(0)
+        val recalledCycle = ((startTl - curStart) / (curProc * 1000L) - 1).toInt().coerceAtLeast(0)
         pendingOffset = classOffset + if (curRunning) recalledCycle else 0
         if (!stopProcedure()) return@action
         interrupt = Interrupt.GENERAL_RECALL
@@ -587,7 +623,7 @@ class FlagController(
 
     /** Uitstelwimpel op met twee geluidsseinen. De timer stopt. */
     fun postpone() = action {
-        pendingOffset = if (curRunning) classOffset + FlagLogic.cycleForK(Math.floorDiv(curNow - curStart, 1000L))
+        pendingOffset = if (curRunning) classOffset + FlagLogic.cycleForK(Math.floorDiv(curNow - curStart, 1000L), curProc)
                         else pendingOffset ?: 0
         if (!stopProcedure()) return@action
         interrupt = Interrupt.POSTPONED
@@ -663,5 +699,6 @@ class FlagController(
         private const val K_COUNTDOWN = "start_countdown"
         private const val K_CLASS_COLOR = "class_color"
         private const val K_PHONE_SCHED = "phone_schedules"
+        private const val K_SWITCH_PROC = "switch_proc_s"
     }
 }

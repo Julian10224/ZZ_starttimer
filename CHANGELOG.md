@@ -4,6 +4,17 @@ Alle wijzigingen per versie. De versies staan in `firmware/Timer_ZZ_Vx/` en als 
 
 ---
 
+## V7B — 5 of 3 minuten doorstart
+
+- **Modusschakelaar** (ingelezen bij START): open (`HIGH`) = 5 minuten doorstart, gesloten (`LOW`) = 3 minuten doorstart. Beide herhalen tot reset; de stand "één keer" vervalt.
+- **5 minuten:** hoorn op 5:00 en 4:00 (0,5 s), 1:00 en 0:00 (1 s), na 0:00 verder op 4:59 (zoals de herhaalmodus van V7).
+- **3 minuten:** hoorn op 3:00 (0,5 s), 1:00 en 0:00 (1 s), na 0:00 verder op 2:59.
+- In rust tonen de displays 5:00 of 3:00, volgens de schakelaar.
+- Handmatige toeter: in rust en in de eerste minuut van elke cyclus (5:00–4:00 of 3:00–2:00).
+- Status naar de app met `proc_s` en `switch_proc_s`; geplande starts bewaren hun eigen procedure (`proc_s`) en gebruiken die, ongeacht de schakelaar. Bestaande geplande starts uit V7A worden niet overgenomen.
+- `FW_VERSION` = `"V7B"`. Hardware gelijk aan V7A.
+- **App 1.8:** klok, moduskeuze, vlaggenpagina met stem en geplande starts rekenen met 5 of 3 minuten.
+
 ## V7A — V7 met de app-functionaliteit
 
 - Gebaseerd op V7: zelfde pinnen, normaal relais, twee grote displays (6 registers), segmentmapping, lampje toeterknop (`LOW` = toegestaan), modi en slaapmodus.

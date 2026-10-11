@@ -48,10 +48,10 @@ De app stuurt het verkeer altijd via het WiFi-netwerk van de timer, ook als Andr
 ## Gebruik
 
 - **START / STOP-RESET:** STOP werkt hetzelfde als de resetknop (terug naar 5:00).
-- **Modus:** de app toont de stand van de schakelaar op de timer; wijzigen kan alleen met die schakelaar.
+- **Modus:** **5 min doorstart** (schakelaar open) of **3 min doorstart** (schakelaar gesloten). De app toont de stand van de schakelaar op de timer; wijzigen kan alleen met die schakelaar.
 - **LED-paneel:** aan/uit is hetzelfde als lang drukken op reset. Uitzetten kan niet tijdens een lopende procedure.
-- **Toeter:** toont of het hoornrelais op dit moment aan staat. Met de knop **TOETER · INGEDRUKT HOUDEN** laat je de toeter klinken zolang je hem vasthoudt, op dezelfde momenten als de handmatige knop op de timer (in rust en tijdens 5:00–4:00). Valt de verbinding weg terwijl je hem ingedrukt houdt, dan stopt de toeter binnen 0,6 s.
-- **Geplande starts:** kies een tijd en of dat het startschot (0:00) of het begin van de procedure is. De timer voert de start zelf uit, ook als de app dicht is.
+- **Toeter:** toont of het hoornrelais op dit moment aan staat. Met de knop **TOETER · INGEDRUKT HOUDEN** laat je de toeter klinken zolang je hem vasthoudt, op dezelfde momenten als de handmatige knop op de timer (in rust en in de eerste minuut: 5:00–4:00, of 3:00–2:00 bij 3 minuten). Valt de verbinding weg terwijl je hem ingedrukt houdt, dan stopt de toeter binnen 0,6 s.
+- **Geplande starts:** kies een tijd, 5 of 3 minuten doorstart (standaard de stand van de schakelaar) en of dat het startschot (0:00) of het begin van de procedure is. De timer voert de start zelf uit, ook als de app dicht is.
 - **Vlaggenpagina:** via de navigatiebalk onderaan. Toont de seinvlaggen volgens regel 26, telt hardop af in het Nederlands en heeft knoppen voor individuele terugroep, algemene terugroep en uitstel. Zie [VLAGGEN.md](VLAGGEN.md).
 - Het scherm blijft aan zolang de app open is.
 

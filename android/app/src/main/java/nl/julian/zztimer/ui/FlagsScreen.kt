@@ -53,6 +53,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import nl.julian.zztimer.TimerMath
 import nl.julian.zztimer.ClassColor
 import nl.julian.zztimer.EspStatus
 import nl.julian.zztimer.FlagSettings
@@ -281,14 +282,19 @@ private fun FlagControls(
     }
 
     // Verloop volgens regel 26
-    SectionCard("VERLOOP (REGEL 26)") {
-        val steps = listOf(
-            "5:00" to "Waarschuwingssein · klassevlag op",
-            "4:00" to "Voorbereidingssein · ${settings.prep.label} op",
-            "1:00" to "Eén minuut · ${settings.prep.label} neer",
-            "0:00" to "Start · klassevlag neer",
+    SectionCard(if (state.procS == TimerMath.SHORT_S) "VERLOOP (3 MIN DOORSTART)" else "VERLOOP (REGEL 26)") {
+        // Index = timelineStep uit FlagLogic.runningFlags(); bij 3 minuten begint het verloop bij stap 1.
+        val steps = if (state.procS == TimerMath.SHORT_S) listOf(
+            Triple(1, "3:00", "Waarschuwings- en voorbereidingssein · klassevlag en ${settings.prep.label} op"),
+            Triple(2, "1:00", "Eén minuut · ${settings.prep.label} neer"),
+            Triple(3, "0:00", "Start · klassevlag neer"),
+        ) else listOf(
+            Triple(0, "5:00", "Waarschuwingssein · klassevlag op"),
+            Triple(1, "4:00", "Voorbereidingssein · ${settings.prep.label} op"),
+            Triple(2, "1:00", "Eén minuut · ${settings.prep.label} neer"),
+            Triple(3, "0:00", "Start · klassevlag neer"),
         )
-        steps.forEachIndexed { i, (t, text) ->
+        steps.forEach { (i, t, text) ->
             val done = state.timelineStep > i
             val current = state.timelineStep == i
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -377,7 +383,7 @@ private fun FlagSettingsDialog(vm: TimerViewModel, initial: FlagSettings, onDism
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Hint("Gescheiden door komma's. Bij herhalen (schakelaar op de timer) krijgt elke start de volgende klasse.")
+                Hint("Gescheiden door komma's. Bij doorstart krijgt elke start de volgende klasse.")
                 Text("Kleur klassevlag", fontWeight = FontWeight.Medium)
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ClassColor.entries.forEach { c ->

@@ -16,8 +16,10 @@ Nodig: de timer met V7A, een Android-telefoon met de app en een stopwatch of twe
 | 9 | Geplande start (startschot) | Kies een startschot 7 minuten vanaf nu, bijv. 12:07:00. | Om 12:02:00 (telefoontijd) start de procedure met het 5:00-signaal; 0:00 valt om 12:07:00. |
 | 9b | Geplande start (procedure) | Kies een procedure start 3 minuten vanaf nu en sluit de app. | START gebeurt exact op dat tijdstip, zonder app. Open de app daarna: de geplande start is uit de lijst verdwenen. |
 | 9c | Gemiste geplande start | Plan een start, start 1 minuut ervoor handmatig een procedure. | De geplande start wordt overgeslagen; de app toont een melding. |
-| 10 | Langdurig | Zet de schakelaar op herhalen, start, laat de app 1 uur open. | Na 1 uur toont de app nog steeds exact dezelfde tijd als het display, en de 12 cycli vallen elk precies 5 minuten na elkaar. |
-| 11 | Modus | Zet de schakelaar om in rust. | De app toont de nieuwe modus binnen 1 s. |
+| 10 | Langdurig | Zet de schakelaar open (5 min doorstart), start, laat de app 1 uur open. | Na 1 uur toont de app nog steeds exact dezelfde tijd als het display, en de 12 cycli vallen elk precies 5 minuten na elkaar. |
+| 11 | Modus | Zet de schakelaar om in rust. | De app toont de nieuwe modus binnen 1 s; de displays tonen 5:00 (open) of 3:00 (gesloten). |
+| 11b | 3 minuten doorstart | Schakelaar gesloten, START, laat 2 cycli lopen. | Hoorn op 3:00 (0,5 s), 1:00 en 0:00 (1 s); na 0:00 direct verder op 2:59. App, vlaggenpagina en stem lopen gelijk met het display. Handmatige toeter alleen in rust en tussen 3:00 en 2:00. |
+| 11c | Geplande start 3 min | Plan een startschot met **3 min doorstart** terwijl de schakelaar open staat. | De procedure start 3 minuten vóór het startschot en loopt 3 minuten, ongeacht de schakelaar. |
 | 12 | Handmatige hoorn | Druk de hoornknop in rust, tijdens 5:00–4:00 en na 4:00. | Rust en 5:00–4:00: hoorn klinkt en de app toont TOETER ● AAN. Na 4:00 (tot 0:00): geblokkeerd. |
 | 12b | Toeter via app | Houd in de app **TOETER · INGEDRUKT HOUDEN** vast in rust, tijdens 5:00–4:00 en na 4:00. Zet daarna tijdens het vasthouden WiFi op de telefoon uit. | Zelfde als test 12. Bij WiFi uit stopt de toeter binnen 0,6 s. |
 | 13 | PIN | Open Instellingen met een verkeerde PIN (5×), daarna met `1234`. | Na 5 fouten 60 s geblokkeerd; daarna opent `1234` de instellingen. |

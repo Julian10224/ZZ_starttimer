@@ -1,4 +1,4 @@
-# Vlaggenpagina (app 1.7)
+# Vlaggenpagina (app 1.8)
 
 De app heeft een tweede pagina, **Vlaggen**, bereikbaar via de navigatiebalk onderaan (Timer · Vlaggen). Die toont de seinvlaggen van de startprocedure en telt hardop af in het Nederlands, op basis van de tijd van de timer zelf. Het gedrag is gebaseerd op de app *Start Timer* (Leonenko); vlaggen, geluiden en teksten zijn zelf gemaakt en niet overgenomen.
 
@@ -20,6 +20,21 @@ De app heeft een tweede pagina, **Vlaggen**, bereikbaar via de navigatiebalk ond
 | 0:05 … 0:01 | – | – | "Vijf." … "Eén." |
 | 0:00 | Start | Klassevlag neer | "Start! Klassevlag neer." |
 
+## 3 minuten doorstart (schakelaar gesloten)
+
+Vanaf firmware V7B en app 1.8. De hoorn klinkt op 3:00, 1:00 en 0:00. Omdat er op 2:00 geen sein is, gaan de klassevlag en de voorbereidingsvlag samen op bij 3:00.
+
+| Tijd | Sein | Vlaggen | Stem |
+|---|---|---|---|
+| 3:00 | Waarschuwings- en voorbereidingssein | Klassevlag en voorbereidingsvlag op | "Waarschuwingssein. Klassevlag op en P-vlag op. Nog drie minuten." |
+| 2:00 | – | – | "Nog twee minuten." |
+| 1:10 … 1:01 | – | – | "P-vlag neer over tien seconden." en "Vijf." … "Eén." |
+| 1:00 | Eén minuut | Voorbereidingsvlag neer | "Nog één minuut. P-vlag neer." |
+| 0:10 | – | – | "Start over tien seconden. Klassevlag neer, klassevlag ILCA 7 en P-vlag op." |
+| 0:00 | Start | Klassevlag neer, volgende klasse en voorbereidingsvlag op | "Start! Klassevlag neer. Waarschuwingssein klassevlag ILCA 7 en P-vlag. Nog drie minuten." |
+
+Het verloop op de vlaggenpagina toont dan drie stappen (3:00, 1:00, 0:00).
+
 - **Volgende vlag en daarna.** Onder de vlaggen die nu op staan, staan twee kaarten:
   - **VOLGENDE** (groot): de vlag die als eerste op of neer gaat, met **▲ OP** of **▼ NEER** en de tijd tot dat moment. In de laatste 10 seconden licht de kaart oranje op.
   - **DAARNA** (kleiner): de vlag die daarna volgt.
@@ -32,7 +47,7 @@ De app heeft een tweede pagina, **Vlaggen**, bereikbaar via de navigatiebalk ond
   - De keuze is vergrendeld zolang de procedure loopt of een start eraan komt.
 - **Geplande starts** staan op beide pagina's (zelfde lijst, toevoegen/aanpassen/verwijderen kan op allebei), met "Waarschuwingssein over …" als de start binnen een uur valt. Vlak voor een geplande start: 30 s vooraf "Waarschuwingssein over dertig seconden", en in de stand *10 s aftellen* ook "Klassevlag op over tien seconden" en "Vijf … Eén". De start zelf doet altijd de timer, ook als de app dicht is; voor de stem moet de app open zijn.
 - De **fysieke startknop** op de timer start direct, zonder aftellen.
-- **Herhalen** (schakelaar op de timer open): de start van de ene klasse is het waarschuwingssein van de volgende. De stem zegt dan "Start! Klassevlag Optimist neer. Waarschuwingssein klassevlag ILCA 7. Nog vijf minuten." De klassen stel je in via het tandwiel, gescheiden door komma's.
+- **Doorstart** (vanaf V7B altijd; schakelaar open = 5 minuten, gesloten = 3 minuten): de start van de ene klasse is het waarschuwingssein van de volgende. De stem zegt dan "Start! Klassevlag Optimist neer. Waarschuwingssein klassevlag ILCA 7. Nog vijf minuten." De klassen stel je in via het tandwiel, gescheiden door komma's.
 - De stem spreekt 0,25 s vóór de seconde, zodat het woord samenvalt met het omslaan van het display en de hoorn.
 - De stem loopt door als je naar de Timer-pagina gaat. Hij gebruikt de Nederlandse stem van de telefoon; is die niet geïnstalleerd, dan meldt de app dat (Instellingen van Android → Tekst-naar-spraak).
 - Opent de app midden in een procedure, dan zegt de stem pas iets bij het volgende moment; gemiste aankondigingen worden niet ingehaald.

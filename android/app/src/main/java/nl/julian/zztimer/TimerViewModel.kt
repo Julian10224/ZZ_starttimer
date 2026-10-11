@@ -19,7 +19,7 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 
 /** Invoer uit het dialoogvenster voor een geplande start. */
-data class ScheduleInput(val id: Long?, val hour: Int, val minute: Int, val kind: Int)
+data class ScheduleInput(val id: Long?, val hour: Int, val minute: Int, val kind: Int, val procS: Int = TimerMath.PROCEDURE_S)
 
 class TimerViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -112,17 +112,18 @@ class TimerViewModel(app: Application) : AndroidViewModel(app) {
         val zone = ZoneId.systemDefault()
         var target = ZonedDateTime.now(zone)
             .withHour(input.hour).withMinute(input.minute).withSecond(0).withNano(0)
-        var press = if (input.kind == 0) target.minusMinutes(5) else target
+        val procS = TimerMath.proc(input.procS)
+        var press = if (input.kind == 0) target.minusSeconds(procS.toLong()) else target
         if (press.toInstant().toEpochMilli() <= System.currentTimeMillis() + 5_000) {
             target = target.plusDays(1)
-            press = if (input.kind == 0) target.minusMinutes(5) else target
+            press = if (input.kind == 0) target.minusSeconds(procS.toLong()) else target
         }
         val targetMs = target.toInstant().toEpochMilli()
         val pressMs = press.toInstant().toEpochMilli()
 
         // Geen verbinding met de klok, of een bestaande telefoonstart: op de telefoon plannen
         if (!client.connected.value || (input.id != null && input.id < 0)) {
-            flags.savePhoneSchedule(input.id, pressMs, targetMs, input.kind)
+            flags.savePhoneSchedule(input.id, pressMs, targetMs, input.kind, procS)
             _messages.emit("Gepland op de telefoon: ${TimeFormat.dayLabel(targetMs)} ${TimeFormat.time(targetMs)}. Druk dan zelf START van de klok.")
             return null
         }
@@ -134,6 +135,7 @@ class TimerViewModel(app: Application) : AndroidViewModel(app) {
             put("press_epoch", pressMs)
             put("target_epoch", targetMs)
             put("kind", input.kind)
+            put("proc_s", procS)
         }
         if (!ack.ok) return ack.error ?: "Opslaan mislukt."
         _messages.emit("Gepland: ${TimeFormat.dayLabel(targetMs)} ${TimeFormat.time(targetMs)}")

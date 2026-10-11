@@ -216,7 +216,7 @@ private fun TimerPanel(vm: TimerViewModel, status: EspStatus?, connected: Boolea
                 status == null -> "Wachten op de timer…"
                 panelOff -> "LED-paneel staat uit"
                 flagState.phase == nl.julian.zztimer.Phase.RESUMING -> "Waarschuwingssein over ${flagState.timeText}"
-                status.running && status.repeat -> "Procedure loopt · herhalen"
+                status.running && status.repeat -> "Procedure loopt · ${TimerMath.procLabel(status.procS)} doorstart"
                 status.running -> "Procedure loopt · één keer"
                 else -> "Gereed"
             },
@@ -252,16 +252,16 @@ private fun Controls(
 
     StartControls(vm, connected)
 
-    // Modus: wordt bepaald door de schakelaar op de timer
+    // Modus: wordt bepaald door de schakelaar op de timer (open = 5 min, dicht = 3 min doorstart)
     SectionCard("MODUS") {
-        val repeat = status?.repeat
+        val proc = status?.procS
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-            ModeChip("Eén keer", selected = repeat == false, modifier = Modifier.weight(1f))
-            ModeChip("Herhalen", selected = repeat == true, modifier = Modifier.weight(1f))
+            ModeChip("5 min doorstart", selected = proc == TimerMath.PROCEDURE_S, modifier = Modifier.weight(1f))
+            ModeChip("3 min doorstart", selected = proc == TimerMath.SHORT_S, modifier = Modifier.weight(1f))
         }
         Text(
             if (running) "Modus van de lopende procedure. Wijzigen met de schakelaar op de timer (geldt bij de volgende start)."
-            else "Stand van de schakelaar op de timer. Wijzigen kan alleen met die schakelaar.",
+            else "Stand van de schakelaar op de timer (open = 5 min, dicht = 3 min). Wijzigen kan alleen met die schakelaar.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -341,7 +341,7 @@ internal fun ScheduleSection(
                 enabled = if (clock) connected else true,
                 onEdit = {
                     val t = Instant.ofEpochMilli(s.targetEpoch).atZone(ZoneId.systemDefault()).toLocalTime()
-                    onEditSchedule(ScheduleInput(s.id, t.hour, t.minute, s.kind))
+                    onEditSchedule(ScheduleInput(s.id, t.hour, t.minute, s.kind, s.procS))
                 },
                 onDelete = { vm.deleteSchedule(s.id) },
                 onMoveToClock = { vm.flags.moveToClock(s) },
@@ -350,7 +350,7 @@ internal fun ScheduleSection(
         OutlinedButton(
             onClick = {
                 val t = LocalTime.now().plusMinutes(10)
-                onEditSchedule(ScheduleInput(null, t.hour, t.minute, 0))
+                onEditSchedule(ScheduleInput(null, t.hour, t.minute, 0, status?.switchProcS ?: vm.flags.switchProc))
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
@@ -443,10 +443,11 @@ private fun ScheduleRow(
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
             )
-            val what = if (s.kind == 0)
+            val what = (if (s.kind == 0)
                 "Startschot · procedure start ${TimeFormat.time(s.pressEpoch)}"
             else
-                "Procedure start · startschot ${TimeFormat.time(s.pressEpoch + 300_000)}"
+                "Procedure start · startschot ${TimeFormat.time(s.pressEpoch + s.procS * 1000L)}") +
+                " · ${TimerMath.procLabel(s.procS)}"
             Text("${TimeFormat.dayLabel(s.targetEpoch)} · $what", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (onClock) {
                 Text(
@@ -486,6 +487,7 @@ private fun ScheduleRow(
 internal fun ScheduleDialog(vm: TimerViewModel, initial: ScheduleInput, onDismiss: () -> Unit) {
     val picker = rememberTimePickerState(initialHour = initial.hour, initialMinute = initial.minute, is24Hour = true)
     var kind by remember { mutableIntStateOf(initial.kind) }
+    var procS by remember { mutableIntStateOf(TimerMath.proc(initial.procS)) }
     var error by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -496,8 +498,13 @@ internal fun ScheduleDialog(vm: TimerViewModel, initial: ScheduleInput, onDismis
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 TimeInput(state = picker)
-                KindOption("Startschot (0:00) om dit tijdstip", "Procedure begint 5 minuten eerder", kind == 0) { kind = 0 }
-                KindOption("Procedure start om dit tijdstip", "Startschot valt 5 minuten later", kind == 1) { kind = 1 }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                    ProcChip("5 min doorstart", procS == TimerMath.PROCEDURE_S, Modifier.weight(1f)) { procS = TimerMath.PROCEDURE_S }
+                    ProcChip("3 min doorstart", procS == TimerMath.SHORT_S, Modifier.weight(1f)) { procS = TimerMath.SHORT_S }
+                }
+                val min = procS / 60
+                KindOption("Startschot (0:00) om dit tijdstip", "Procedure begint $min minuten eerder", kind == 0) { kind = 0 }
+                KindOption("Procedure start om dit tijdstip", "Startschot valt $min minuten later", kind == 1) { kind = 1 }
                 error?.let { Text(it, color = ZzColors.Error, modifier = Modifier.padding(top = 8.dp)) }
             }
         },
@@ -507,7 +514,7 @@ internal fun ScheduleDialog(vm: TimerViewModel, initial: ScheduleInput, onDismis
                 onClick = {
                     busy = true
                     scope.launch {
-                        val err = vm.saveSchedule(initial.copy(hour = picker.hour, minute = picker.minute, kind = kind))
+                        val err = vm.saveSchedule(initial.copy(hour = picker.hour, minute = picker.minute, kind = kind, procS = procS))
                         busy = false
                         if (err == null) onDismiss() else error = err
                     }
@@ -516,6 +523,11 @@ internal fun ScheduleDialog(vm: TimerViewModel, initial: ScheduleInput, onDismis
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Annuleren") } },
     )
+}
+
+@Composable
+private fun ProcChip(label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    ModeChip(label, selected, modifier.selectable(selected = selected, onClick = onClick, role = Role.RadioButton))
 }
 
 @Composable
