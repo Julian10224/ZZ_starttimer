@@ -10,11 +10,13 @@ SCEN = "/tmp/esp_scenario.json"
 T0 = time.monotonic()
 BOOT = 1_000_000          # ESP "draait al" ~17 minuten
 state = {"running": True, "elapsed_s": 100, "proc_s": 300, "led": True, "horn": False, "start_ms": 0, "mtime": None}
-state["start_ms"] = esp_ms() - state["elapsed_s"] * 1000
 
 
 def esp_ms():
     return int((time.monotonic() - T0) * 1000) + BOOT
+
+
+state["start_ms"] = esp_ms() - state["elapsed_s"] * 1000
 
 
 def load():

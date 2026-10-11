@@ -46,6 +46,10 @@ def scroll_to(text, tries=6):
         root = dump()
         if root is not None and find(root, text):
             return True
+        if root is None:
+            print("scrollto: dump mislukt")
+        else:
+            print("scrollto: zichtbaar:", [((n.get("text") or "") + "/" + (n.get("content-desc") or ""))[:40] for n in root.iter("node") if n.get("text") or n.get("content-desc")][:30])
         sh("input", "swipe", "540", "1700", "540", "900", "500")
         time.sleep(0.8)
     return False

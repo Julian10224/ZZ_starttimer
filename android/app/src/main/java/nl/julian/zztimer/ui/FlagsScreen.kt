@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -376,6 +378,7 @@ private fun TimelineRow(time: String, text: String, done: Boolean, current: Bool
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun FlagSettingsDialog(vm: TimerViewModel, initial: FlagSettings, onDismiss: () -> Unit) {
     val c = Zz.colors
@@ -406,7 +409,7 @@ private fun FlagSettingsDialog(vm: TimerViewModel, initial: FlagSettings, onDism
     ) {
         Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(Space.m)) {
             DialogLabel("Voorbereidingsvlag")
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(Space.s), verticalArrangement = Arrangement.spacedBy(Space.s)) {
                 PrepFlag.entries.forEach { f ->
                     ChoicePill(f.label, prep == f, onClick = { prep = f }) {
                         SignalFlag(ShownFlag(f.kind(), f.label), 16.dp)
@@ -421,7 +424,7 @@ private fun FlagSettingsDialog(vm: TimerViewModel, initial: FlagSettings, onDism
             )
             Footnote("Gescheiden door komma's. Bij doorstart krijgt elke start de volgende klasse.")
             DialogLabel("Kleur klassevlag")
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(Space.s), verticalArrangement = Arrangement.spacedBy(Space.s)) {
                 ClassColor.entries.forEach { col ->
                     ChoicePill(col.label, classColor == col, onClick = { classColor = col }) {
                         Box(
