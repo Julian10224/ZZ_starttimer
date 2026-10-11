@@ -112,6 +112,7 @@ fun MainScreen(vm: TimerViewModel, onOpenSettings: () -> Unit, bottomBar: @Compo
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            val fullWidth = maxWidth
             val landscape = maxWidth > maxHeight && maxWidth >= 560.dp
             if (landscape) {
                 Row(Modifier.fillMaxSize()) {
@@ -124,7 +125,7 @@ fun MainScreen(vm: TimerViewModel, onOpenSettings: () -> Unit, bottomBar: @Compo
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        TimerHero(vm, status, connected, maxWidth / 2 - Space.screen * 2)
+                        TimerHero(vm, status, connected, fullWidth / 2 - Space.screen * 2)
                     }
                     Column(
                         Modifier
@@ -146,7 +147,7 @@ fun MainScreen(vm: TimerViewModel, onOpenSettings: () -> Unit, bottomBar: @Compo
                     verticalArrangement = Arrangement.spacedBy(Space.xl),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    TimerHero(vm, status, connected, maxWidth - Space.screen * 2)
+                    TimerHero(vm, status, connected, fullWidth - Space.screen * 2)
                     Controls(vm, status, connected) { scheduleEdit = it }
                     Spacer(Modifier.height(Space.s))
                 }
