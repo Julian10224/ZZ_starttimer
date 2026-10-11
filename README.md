@@ -47,6 +47,7 @@ timer-zz/
     ├── Timer_ZZ_V10/Timer_ZZ_V10.ino ← branch tonnie, PWM-relais + nieuw matrixboard (3 digits)
     ├── Timer_ZZ_V11/Timer_ZZ_V11.ino ← branch tonnie, als V10, robuust voor wedstrijden
     ├── Timer_ZZ_V12/Timer_ZZ_V12.ino ← branch tonnie, als V11, lampje toeterknop omgekeerd
+    ├── Timer_ZZ_V13/Timer_ZZ_V13.ino ← branch tonnie, als V12, 5 of 3 minuten doorstart
     └── Timer_ZZ_Segmenttest/         ← testsketch voor de segmentmapping van het matrixboard
 android/                           ← Android-app (branch tonnie)
 docs/                              ← analyse V8, protocol, app, testplan
@@ -239,6 +240,7 @@ In V7 schuift `updateShiftRegisterDisplay()` dezelfde drie bytes twee keer in (z
 | **V4** | `Bounce2`-debouncing i.p.v. interrupts, slaapmodus, nieuwe modus: eerst optellen tot 4:00 en dan aftellen vanaf 5:00. Driftvrije tijdbasis. |
 | **V5** | Reset direct bij indrukken, handmatige hoorn ook toegestaan tussen 5:00 en 4:00, auto-slaap na 6 min, pinnen `horn_button`/`timer_switch` gewisseld. |
 | **V6** | Instelbare relaisduur: 0,5 s bij start en 4:00, 1 s bij 1:00 en 0:00. |
+| **V13** *(branch tonnie)* | V12 met twee modi via de schakelaar: open = 5 minuten doorstart (hoorn 5:00, 4:00, 1:00, 0:00), gesloten = 3 minuten doorstart (hoorn 3:00, 1:00, 0:00). Beide herhalen tot reset; de stand "één keer" vervalt. Geplande starts bewaren hun eigen procedure. Nodig: app 1.8. |
 | **V12** *(branch tonnie)* | V11 met omgekeerd lampje in de handmatige toeterknop (GPIO 22): `HIGH` = toeter toegestaan, `LOW` = geblokkeerd. |
 | **V11** *(branch tonnie)* | V10 robuust gemaakt: netwerk in eigen taak (timer wacht nooit op WiFi), watchdog op de timer, herstel van een lopende procedure na een crash. |
 | **V10** *(branch tonnie)* | V9 voor het nieuwe matrixboard: enable actief-laag, 3 digits, instelbare segmentmapping. Plus testsketch `Timer_ZZ_Segmenttest`. |
@@ -269,7 +271,7 @@ Op de branch `tonnie` staat V8: V7 plus een eigen WiFi-netwerk waarmee de Androi
 | [docs/V10_MATRIXBOARD.md](docs/V10_MATRIXBOARD.md) | V10: nieuw matrixboard en mapping bepalen met de testsketch |
 | [docs/V11_ROBUUSTHEID.md](docs/V11_ROBUUSTHEID.md) | V11: waarom en hoe de timer nooit stopt door WiFi/app, herstel na een crash, testen |
 
-**Welke firmware?** Bord met normaal relais → **V8**. Bord met PWM-relais (RC-schakelaar) → **V9**. PWM-relais + nieuw matrixboard (3 digits, enable actief-laag) → **V12** (V11 is gelijk maar met het lampje van de toeterknop andersom; V10 zonder de robuustheidsmaatregelen). Verder zijn V8 en V9 gelijk en werken ze allebei met de app.
+**Welke firmware?** Bord met normaal relais → **V8**. Bord met PWM-relais (RC-schakelaar) → **V9**. PWM-relais + nieuw matrixboard (3 digits, enable actief-laag) → **V13** met 5 of 3 minuten doorstart (app 1.8), of **V12** met de oude modi één keer/herhalen (V11 is gelijk aan V12 maar met het lampje van de toeterknop andersom; V10 zonder de robuustheidsmaatregelen). Verder zijn V8 en V9 gelijk en werken ze allebei met de app.
 
 Standaard: WiFi `ZZ-WedstrijdTimer` / `ZZstart2026`, IP `192.168.4.1`, beheerders-PIN `1234`.
 

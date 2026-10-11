@@ -18,6 +18,8 @@
   "start_ms": 1200000,
   "repeat": false,
   "switch_repeat": false,
+  "proc_s": 300,
+  "switch_proc_s": 300,
   "min": 4,
   "sec": 25,
   "led_panel": true,
@@ -30,7 +32,7 @@
   "clients": 1,
   "uptime_s": 1234,
   "sched": [
-    { "id": 3, "press": 1790001300000, "target": 1790001600000, "kind": 0 }
+    { "id": 3, "press": 1790001300000, "target": 1790001600000, "kind": 0, "proc_s": 300 }
   ]
 }
 ```
@@ -41,6 +43,8 @@
 | `start_ms` | ESP-tijd van het START-moment |
 | `repeat` | Modus van de lopende procedure; in rust de stand van de schakelaar |
 | `switch_repeat` | Huidige stand van de schakelaar (`true` = open = herhalen) |
+| `proc_s` | Vanaf V13: lengte van de procedure in seconden, `300` = 5 minuten doorstart, `180` = 3 minuten doorstart. Tijdens een procedure die van de lopende procedure, in rust de stand van de schakelaar. Ontbreekt bij oudere firmware (dan 300). `repeat` en `switch_repeat` zijn vanaf V13 altijd `true`. |
+| `switch_proc_s` | Vanaf V13: huidige stand van de schakelaar (open = `300`, gesloten = `180`) |
 | `min`, `sec` | Wat de displays van de ESP op dit moment tonen |
 | `led_panel` | `false` = slaapmodus (displays uit) |
 | `horn` | Werkelijke stand van de relaisuitgang |
@@ -48,12 +52,13 @@
 | `time_synced` | ESP kent de telefoontijd (nodig voor geplande starts) |
 | `sched[].press` | Moment waarop de ESP START uitvoert |
 | `sched[].target` | Tijd die de gebruiker koos |
-| `sched[].kind` | `0` = startschot om `target` (`press = target − 300 000`), `1` = procedure start om `target` |
+| `sched[].kind` | `0` = startschot om `target` (`press = target − proc_s × 1000`), `1` = procedure start om `target` |
+| `sched[].proc_s` | Procedure van deze geplande start (`300` of `180`). De geplande start gebruikt deze procedure, niet de stand van de schakelaar. |
 
-**Wedstrijdtijd in de app:** `k = floor((espNu − start_ms) / 1000)` met dezelfde regel als de firmware:
-- `k = 0` → 5:00;
-- anders `rest = 300 − (((k − 1) mod 300) + 1)`;
-- bij één keer en `k > 300` → gestopt.
+**Wedstrijdtijd in de app:** `k = floor((espNu − start_ms) / 1000)` met dezelfde regel als de firmware, met `P = proc_s` (300 of 180):
+- `k = 0` → `P` (5:00 of 3:00);
+- anders `rest = P − (((k − 1) mod P) + 1)`;
+- bij één keer (alleen oudere firmware) en `k > P` → gestopt.
 
 `espNu` = `elapsedRealtime()` van de telefoon + klokverschil (zie `sync`).
 
@@ -90,8 +95,8 @@ Bij `sched_add` / `sched_edit` staat het `sched_id` in het antwoord.
 | `horn` | `on` (bool) | Handmatige toeter. De app herhaalt `on: true` elke 200 ms zolang de knop is ingedrukt; de ESP zet de toeter uit na `on: false`, na 600 ms zonder herhaling of als de verbinding wegvalt. Zelfde toegestane momenten als de fysieke knop. Geen `ack`. |
 | `sync` | `t` (epoch-ms telefoon) | ESP antwoordt direct met `esp_ms` |
 | `settime` | `offset_ms` | Verschil epoch − ESP-tijd, voor geplande starts |
-| `sched_add` | `press_epoch`, `target_epoch`, `kind` | Geplande start toevoegen |
-| `sched_edit` | `sched_id`, `press_epoch`, `target_epoch`, `kind` | Aanpassen |
+| `sched_add` | `press_epoch`, `target_epoch`, `kind`, `proc_s` | Geplande start toevoegen. `proc_s` (300 of 180) is optioneel, standaard 300. |
+| `sched_edit` | `sched_id`, `press_epoch`, `target_epoch`, `kind`, `proc_s` | Aanpassen |
 | `sched_del` | `sched_id` | Verwijderen |
 | `pin_check` | `pin` | Controleert de beheerders-PIN |
 | `pin_set` | `pin`, `new_pin` | PIN wijzigen (4–8 cijfers) |
