@@ -292,7 +292,8 @@ class EspClient(context: Context, private val scope: CoroutineScope, host: Strin
         if (arr != null) {
             for (i in 0 until arr.length()) {
                 val s = arr.optJSONObject(i) ?: continue
-                list += Schedule(s.optLong("id"), s.optLong("press"), s.optLong("target"), s.optInt("kind"))
+                list += Schedule(s.optLong("id"), s.optLong("press"), s.optLong("target"), s.optInt("kind"),
+                    TimerMath.proc(s.optInt("proc_s", TimerMath.PROCEDURE_S)))
             }
         }
         list.sortBy { it.pressEpoch }
@@ -304,6 +305,9 @@ class EspClient(context: Context, private val scope: CoroutineScope, host: Strin
             startMs = o.optLong("start_ms"),
             repeat = o.optBoolean("repeat"),
             switchRepeat = o.optBoolean("switch_repeat"),
+            // Oude firmware (zonder proc_s) kent alleen 5 minuten
+            procS = TimerMath.proc(o.optInt("proc_s", TimerMath.PROCEDURE_S)),
+            switchProcS = TimerMath.proc(o.optInt("switch_proc_s", TimerMath.PROCEDURE_S)),
             minutes = o.optInt("min"),
             seconds = o.optInt("sec"),
             ledPanel = o.optBoolean("led_panel", true),

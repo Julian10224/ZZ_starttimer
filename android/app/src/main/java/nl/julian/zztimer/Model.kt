@@ -12,6 +12,7 @@ data class Schedule(
     val pressEpoch: Long,   // moment waarop de ESP op START drukt
     val targetEpoch: Long,  // tijd die de gebruiker koos
     val kind: Int,          // 0 = startschot (0:00) om, 1 = procedure start om
+    val procS: Int = TimerMath.PROCEDURE_S,  // 300 = 5 minuten, 180 = 3 minuten doorstart
 )
 
 /** Status zoals de ESP die stuurt (zie docs/PROTOCOL.md). */
@@ -22,6 +23,8 @@ data class EspStatus(
     val startMs: Long,
     val repeat: Boolean,
     val switchRepeat: Boolean,
+    val procS: Int,         // lopende procedure, in rust de stand van de schakelaar (300 of 180)
+    val switchProcS: Int,   // stand van de schakelaar: open = 300 (5 min), dicht = 180 (3 min)
     val minutes: Int,
     val seconds: Int,
     val ledPanel: Boolean,
@@ -36,18 +39,26 @@ data class EspStatus(
 )
 
 object TimerMath {
-    const val PROCEDURE_S = 300
+    const val PROCEDURE_S = 300   // 5 minuten doorstart
+    const val SHORT_S = 180       // 3 minuten doorstart
+
+    /** Alleen 300 en 180 zijn geldig; al het andere (oude firmware) telt als 5 minuten. */
+    fun proc(p: Int): Int = if (p == SHORT_S) SHORT_S else PROCEDURE_S
+
+    /** "5 min" of "3 min". */
+    fun procLabel(p: Int): String = "${proc(p) / 60} min"
 
     /**
-     * Resterende seconden, precies zoals stepSecond() in de firmware:
-     * k = 0 -> 5:00, k = 300 -> 0:00, k = 301 -> gestopt (één keer) of 4:59 (herhalen).
+     * Resterende seconden, precies zoals stepSecond() in de firmware, met P = [procS]:
+     * k = 0 -> P, k = P -> 0:00, k = P + 1 -> gestopt (één keer, oude firmware) of P - 1 (doorstart).
      * Geeft null terug als een eenmalige procedure is afgelopen.
      */
-    fun remainingSeconds(elapsedMs: Long, repeat: Boolean): Int? {
-        if (elapsedMs < 1000) return PROCEDURE_S
+    fun remainingSeconds(elapsedMs: Long, repeat: Boolean, procS: Int = PROCEDURE_S): Int? {
+        val p = proc(procS)
+        if (elapsedMs < 1000) return p
         val k = elapsedMs / 1000
-        if (!repeat && k > PROCEDURE_S) return null
-        return (PROCEDURE_S - (((k - 1) % PROCEDURE_S) + 1)).toInt()
+        if (!repeat && k > p) return null
+        return (p - (((k - 1) % p) + 1)).toInt()
     }
 
     /** Zelfde formaat als het TM1637-display: MM:SS. */
@@ -56,8 +67,9 @@ object TimerMath {
 
     fun raceText(status: EspStatus?, espNow: Long?): String {
         if (status == null) return "--:--"
-        if (!status.running || espNow == null) return format(PROCEDURE_S)
-        val rem = remainingSeconds(espNow - status.startMs, status.repeat) ?: PROCEDURE_S
+        val p = proc(status.procS)
+        if (!status.running || espNow == null) return format(p)
+        val rem = remainingSeconds(espNow - status.startMs, status.repeat, p) ?: p
         return format(rem)
     }
 }
