@@ -1,9 +1,15 @@
 package nl.julian.zztimer.ui
 
 import android.os.SystemClock
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,37 +18,33 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimeInput
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TimePickerDefaults
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -55,11 +57,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -71,16 +75,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import nl.julian.zztimer.EspStatus
+import nl.julian.zztimer.Phase
 import nl.julian.zztimer.Schedule
 import nl.julian.zztimer.ScheduleInput
 import nl.julian.zztimer.TimeFormat
 import nl.julian.zztimer.TimerMath
 import nl.julian.zztimer.TimerViewModel
+import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
-import java.time.Instant
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(vm: TimerViewModel, onOpenSettings: () -> Unit, bottomBar: @Composable () -> Unit = {}) {
     val status by vm.status.collectAsStateWithLifecycle()
@@ -88,24 +92,20 @@ fun MainScreen(vm: TimerViewModel, onOpenSettings: () -> Unit, bottomBar: @Compo
     val snackbar = remember { SnackbarHostState() }
     var showPin by remember { mutableStateOf(false) }
     var scheduleEdit by remember { mutableStateOf<ScheduleInput?>(null) }
+    val scroll = rememberScrollState()
+    val scroll2 = rememberScrollState()
 
     LaunchedEffect(Unit) { vm.messages.collect { snackbar.showSnackbar(it) } }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("ZZ Wedstrijd Timer", fontWeight = FontWeight.SemiBold) },
-                actions = {
-                    IconButton(onClick = { showPin = true }) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Instellingen")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
-            )
+            ScreenHeader("Timer", scrolled = scroll.value > 0 || scroll2.value > 0, actions = {
+                HeaderIconButton(Icons.Rounded.Settings, "Instellingen") { showPin = true }
+            })
         },
         bottomBar = bottomBar,
-        snackbarHost = { SnackbarHost(snackbar) },
-        containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { ZzSnackbarHost(snackbar) },
+        containerColor = Zz.colors.background,
     ) { padding ->
         BoxWithConstraints(
             Modifier
@@ -120,19 +120,20 @@ fun MainScreen(vm: TimerViewModel, onOpenSettings: () -> Unit, bottomBar: @Compo
                         Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .padding(16.dp),
+                            .verticalScroll(scroll2)
+                            .padding(Space.screen),
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        TimerPanel(vm, status, connected, fullWidth / 2 - 32.dp)
+                        TimerHero(vm, status, connected, fullWidth / 2 - Space.screen * 2)
                     }
                     Column(
                         Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .verticalScroll(rememberScrollState())
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                            .verticalScroll(scroll)
+                            .padding(Space.screen),
+                        verticalArrangement = Arrangement.spacedBy(Space.xl),
                     ) {
                         Controls(vm, status, connected) { scheduleEdit = it }
                     }
@@ -141,14 +142,14 @@ fun MainScreen(vm: TimerViewModel, onOpenSettings: () -> Unit, bottomBar: @Compo
                 Column(
                     Modifier
                         .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                        .verticalScroll(scroll)
+                        .padding(horizontal = Space.screen),
+                    verticalArrangement = Arrangement.spacedBy(Space.xl),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    TimerPanel(vm, status, connected, fullWidth - 32.dp)
+                    TimerHero(vm, status, connected, fullWidth - Space.screen * 2)
                     Controls(vm, status, connected) { scheduleEdit = it }
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(Space.s))
                 }
             }
         }
@@ -185,56 +186,66 @@ private fun rememberTick(periodMs: Long = 50): Long {
     return tick
 }
 
-/** Telefoontijd, wedstrijdtijd en verbindingsstatus. Ververst zichzelf elke 50 ms. */
+/** Wedstrijdtijd groot in beeld, met verbinding, status, volgende vlag en telefoontijd. */
 @Composable
-private fun TimerPanel(vm: TimerViewModel, status: EspStatus?, connected: Boolean, width: Dp) {
+private fun TimerHero(vm: TimerViewModel, status: EspStatus?, connected: Boolean, width: Dp) {
     rememberTick()
+    val c = Zz.colors
     val phoneTime = TimeFormat.time(System.currentTimeMillis())
-    val localFlags by vm.flags.state.collectAsStateWithLifecycle()
+    val flagState by vm.flags.state.collectAsStateWithLifecycle()
     // Klok niet verbonden maar de vlaggen lopen op de telefoon: toon die tijd
-    val race = if (localFlags.local && (localFlags.running || localFlags.resuming)) localFlags.timeText
+    val race = if (flagState.local && (flagState.running || flagState.resuming)) flagState.timeText
                else TimerMath.raceText(status, vm.client.espNow())
-    val digitSize = with(LocalDensity.current) { (width / 3.2f).toSp() }
+    val digitSize = with(LocalDensity.current) { (width / 3.1f).toSp() }
     val panelOff = status != null && !status.ledPanel
+    val dim = !connected || panelOff
+    val digitColor by animateColorAsState(if (dim) c.tertiaryLabel else c.label, tween(Motion.STANDARD), label = "cijfers")
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-        Text("TELEFOONTIJD", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.5.sp)
-        Text(phoneTime, fontFamily = FontFamily.Monospace, fontSize = 26.sp, fontWeight = FontWeight.Medium)
-        Spacer(Modifier.height(18.dp))
-        Text("WEDSTRIJDTIJD", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 1.5.sp)
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth().padding(top = Space.s),
+    ) {
+        StatusPill(
+            if (connected) "Verbonden met de timer" else "Geen verbinding",
+            if (connected) c.positive else c.destructive,
+        )
+        Spacer(Modifier.height(Space.l))
+        Text("WEDSTRIJDTIJD", style = ZzType.caption, color = c.secondaryLabel)
         Text(
             race,
-            fontFamily = FontFamily.Monospace,
-            fontWeight = FontWeight.Bold,
-            fontSize = if (digitSize.value > 150f) 150.sp else digitSize,
+            style = ZzType.digits.copy(fontSize = if (digitSize.value > 140f) 140.sp else digitSize, letterSpacing = (-2).sp),
+            color = digitColor,
             maxLines = 1,
-            modifier = Modifier.alpha(if (connected && !panelOff) 1f else 0.45f),
+            modifier = Modifier.semantics { contentDescription = "Wedstrijdtijd $race" },
         )
-        val flagState by vm.flags.state.collectAsStateWithLifecycle()
         Text(
             text = when {
                 status == null -> "Wachten op de timer…"
                 panelOff -> "LED-paneel staat uit"
-                flagState.phase == nl.julian.zztimer.Phase.RESUMING -> "Waarschuwingssein over ${flagState.timeText}"
+                flagState.phase == Phase.RESUMING -> "Waarschuwingssein over ${flagState.timeText}"
                 status.running && status.repeat -> "Procedure loopt · ${TimerMath.procLabel(status.procS)} doorstart"
                 status.running -> "Procedure loopt · één keer"
                 else -> "Gereed"
             },
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = ZzType.callout,
+            color = c.secondaryLabel,
+            textAlign = TextAlign.Center,
         )
         flagState.upcoming.firstOrNull()?.let {
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(Space.m))
             UpcomingLine(it)
         }
-        Spacer(Modifier.height(10.dp))
-        StatusText(connected, "VERBONDEN", "GEEN VERBINDING", ZzColors.Ok, ZzColors.Error)
-        if (!connected) {
-            Text(
+        Spacer(Modifier.height(Space.m))
+        Text(
+            "Telefoontijd  $phoneTime",
+            style = ZzType.footnote.tabular().copy(letterSpacing = 0.sp),
+            color = c.secondaryLabel,
+        )
+        AnimatedVisibility(visible = !connected, enter = fadeIn(tween(Motion.STANDARD)), exit = fadeOut(tween(Motion.STANDARD))) {
+            Footnote(
                 "Verbind de telefoon met het WiFi-netwerk van de timer. De timer zelf loopt gewoon door.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 4.dp, start = 16.dp, end = 16.dp),
+                modifier = Modifier.padding(top = Space.s, start = Space.l, end = Space.l),
             )
         }
     }
@@ -247,47 +258,43 @@ private fun Controls(
     connected: Boolean,
     onEditSchedule: (ScheduleInput) -> Unit,
 ) {
+    val c = Zz.colors
     val running = status?.running == true
     val panelOn = status?.ledPanel != false
 
     StartControls(vm, connected)
 
     // Modus: wordt bepaald door de schakelaar op de timer (open = 5 min, dicht = 3 min doorstart)
-    SectionCard("MODUS") {
-        val proc = status?.procS
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-            ModeChip("5 min doorstart", selected = proc == TimerMath.PROCEDURE_S, modifier = Modifier.weight(1f))
-            ModeChip("3 min doorstart", selected = proc == TimerMath.SHORT_S, modifier = Modifier.weight(1f))
-        }
-        Text(
-            if (running) "Modus van de lopende procedure. Wijzigen met de schakelaar op de timer (geldt bij de volgende start)."
-            else "Stand van de schakelaar op de timer (open = 5 min, dicht = 3 min). Wijzigen kan alleen met die schakelaar.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-
-    SectionCard("STATUS") {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("LED-PANEEL", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
-                StatusText(panelOn && status != null, "AAN", "UIT", ZzColors.Ok)
-            }
-            OutlinedButton(
-                onClick = { vm.setLedPanel(!panelOn) },
-                enabled = connected && status != null && (!panelOn || !running),
-            ) { Text(if (panelOn) "Zet uit" else "Zet aan") }
-        }
-        HorizontalDivider()
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("TOETER", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
-                StatusText(status?.horn == true, "AAN", "UIT", ZzColors.Horn)
-            }
-            Text(
-                if (status?.manualAllowed == true) "Handmatig toegestaan" else "Handmatig geblokkeerd",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+    Column(verticalArrangement = Arrangement.spacedBy(Space.m)) {
+        Section(
+            header = "Timer",
+            footer = if (running) "Modus van de lopende procedure. Wijzigen met de schakelaar op de timer (geldt bij de volgende start)."
+                     else "Modus volgt de schakelaar op de timer (open = 5 min, dicht = 3 min). Wijzigen kan alleen met die schakelaar.",
+        ) {
+            ValueRow(
+                "Modus",
+                when (status?.procS) {
+                    TimerMath.PROCEDURE_S -> "5 min doorstart"
+                    TimerMath.SHORT_S -> "3 min doorstart"
+                    else -> "–"
+                },
+            )
+            RowDivider()
+            ListRow("LED-paneel", trailing = {
+                StatusValue(panelOn && status != null, "Aan", "Uit", c.positive)
+                Spacer(Modifier.width(Space.m))
+                ZzButton(
+                    if (panelOn) "Zet uit" else "Zet aan",
+                    onClick = { vm.setLedPanel(!panelOn) },
+                    style = ButtonStyle.Tinted,
+                    enabled = connected && status != null && (!panelOn || !running),
+                )
+            })
+            RowDivider()
+            ListRow(
+                "Toeter",
+                subtitle = if (status?.manualAllowed == true) "Handmatig toegestaan" else "Handmatig geblokkeerd",
+                trailing = { StatusValue(status?.horn == true, "Klinkt", "Uit", c.warning) },
             )
         }
         HornButton(
@@ -308,30 +315,45 @@ internal fun ScheduleSection(
     connected: Boolean,
     onEditSchedule: (ScheduleInput) -> Unit,
 ) {
-    SectionCard("GEPLANDE STARTS") {
-        // Starts die de app zelf plant (10 s aftellen, hervatten) staan bij de START-knop
-        val phone by vm.flags.phoneSchedules.collectAsStateWithLifecycle()
-        val onClock = status?.schedules.orEmpty().filter { it.pressEpoch !in vm.client.silentTargets }
-        val now = System.currentTimeMillis()
-        val schedules = (onClock.map { it to true } + phone.map { it to false })
-            .filter { it.first.pressEpoch >= now - 2000 }
-            .sortedBy { it.first.pressEpoch }
+    val c = Zz.colors
+    // Starts die de app zelf plant (10 s aftellen, hervatten) staan bij de START-knop
+    val phone by vm.flags.phoneSchedules.collectAsStateWithLifecycle()
+    val onClock = status?.schedules.orEmpty().filter { it.pressEpoch !in vm.client.silentTargets }
+    val now = System.currentTimeMillis()
+    val schedules = (onClock.map { it to true } + phone.map { it to false })
+        .filter { it.first.pressEpoch >= now - 2000 }
+        .sortedBy { it.first.pressEpoch }
+
+    Section(
+        header = "Geplande starts",
+        footer = "Op de klok: de klok start zelf, ook als de app dicht is. " +
+            "Alleen telefoon: de app telt af en zegt wanneer je START van de klok drukt; is de klok dan verbonden, dan start de app hem. " +
+            "Zet een telefoonstart met \"Op klok zetten\" op de klok zodra die verbonden is.",
+    ) {
         if (!connected) {
-            Text(
+            Footnote(
                 "Klok niet verbonden: nieuwe starts worden alleen op de telefoon gepland.",
-                style = MaterialTheme.typography.bodySmall,
-                color = ZzColors.Error,
+                color = c.destructive,
+                modifier = Modifier.padding(SectionPadding),
             )
+            RowDivider()
         }
         if (connected && status != null && !status.timeSynced) {
-            Text(
+            Footnote(
                 "De klok van de timer wordt gesynchroniseerd met deze telefoon…",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(SectionPadding),
             )
+            RowDivider()
         }
         if (schedules.isEmpty()) {
-            Text("Geen geplande starts.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "Geen geplande starts",
+                style = ZzType.body,
+                color = c.secondaryLabel,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(vertical = Space.l, horizontal = Space.l),
+            )
+            RowDivider()
         }
         schedules.forEach { (s, clock) ->
             ScheduleRow(
@@ -346,24 +368,17 @@ internal fun ScheduleSection(
                 onDelete = { vm.deleteSchedule(s.id) },
                 onMoveToClock = { vm.flags.moveToClock(s) },
             )
+            RowDivider()
         }
-        OutlinedButton(
+        ListRow(
+            "Geplande start toevoegen",
+            subtitle = if (connected) "Op de klok" else "Alleen op de telefoon",
+            titleColor = c.accent,
             onClick = {
                 val t = LocalTime.now().plusMinutes(10)
                 onEditSchedule(ScheduleInput(null, t.hour, t.minute, 0, status?.switchProcS ?: vm.flags.switchProc))
             },
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Icon(Icons.Filled.Add, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text(if (connected) "Geplande start toevoegen (op de klok)" else "Geplande start toevoegen (telefoon)")
-        }
-        Text(
-            "● Op de klok: de klok start zelf, ook als de app dicht is. " +
-                "○ Alleen telefoon: de app telt af en zegt wanneer je START van de klok drukt; is de klok dan verbonden, dan start de app hem. " +
-                "Zet een telefoonstart met \"Op klok zetten\" op de klok zodra die verbonden is.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            leading = { Icon(Icons.Rounded.Add, contentDescription = null, tint = c.accent, modifier = Modifier.size(24.dp)) },
         )
     }
 }
@@ -371,19 +386,32 @@ internal fun ScheduleSection(
 /** Handmatige toeter: klinkt zolang de knop wordt ingedrukt (zelfde regels als de fysieke knop). */
 @Composable
 private fun HornButton(enabled: Boolean, onPress: () -> Unit, onRelease: () -> Unit) {
+    val c = Zz.colors
     var pressed by remember { mutableStateOf(false) }
-    val color = when {
-        !enabled -> MaterialTheme.colorScheme.surfaceVariant
-        pressed -> ZzColors.Horn
-        else -> ZzColors.Horn.copy(alpha = 0.75f)
+    val bg by animateColorAsState(
+        when {
+            !enabled -> c.fill
+            pressed -> c.warningFill
+            else -> c.warning.copy(alpha = if (c.isDark) 0.22f else 0.12f)
+        },
+        tween(Motion.FAST), label = "toeter",
+    )
+    val fg = when {
+        !enabled -> c.tertiaryLabel
+        pressed -> c.onWarningFill
+        else -> c.warning
     }
     Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = color,
-        contentColor = if (enabled) androidx.compose.ui.graphics.Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+        shape = RoundedCornerShape(14.dp),
+        color = bg,
+        contentColor = fg,
         modifier = Modifier
             .fillMaxWidth()
-            .height(64.dp)
+            .heightIn(min = 60.dp)
+            .semantics {
+                role = Role.Button
+                contentDescription = if (enabled) "Toeter, ingedrukt houden" else "Toeter, handmatig geblokkeerd"
+            }
             .pointerInput(enabled) {
                 if (!enabled) return@pointerInput
                 detectTapGestures(
@@ -400,27 +428,17 @@ private fun HornButton(enabled: Boolean, onPress: () -> Unit, onRelease: () -> U
                 )
             },
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+        Column(
+            Modifier.padding(vertical = Space.m, horizontal = Space.l),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(if (pressed) "Toeter klinkt" else "Toeter", style = ZzType.headline)
             Text(
-                if (pressed) "TOETER KLINKT" else "TOETER · INGEDRUKT HOUDEN",
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                letterSpacing = 1.sp,
+                if (enabled) "Ingedrukt houden" else "Nu niet toegestaan",
+                style = ZzType.footnote,
+                color = fg.copy(alpha = 0.8f),
             )
-        }
-    }
-}
-
-@Composable
-private fun ModeChip(label: String, selected: Boolean, modifier: Modifier = Modifier) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-        contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.height(48.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-            Text(if (selected) "● $label" else label, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
         }
     }
 }
@@ -435,56 +453,82 @@ private fun ScheduleRow(
     onDelete: () -> Unit,
     onMoveToClock: () -> Unit,
 ) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
+    val c = Zz.colors
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(start = Space.l, end = Space.xs, top = Space.m, bottom = Space.m),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(hm(s.targetEpoch), style = ZzType.title.tabular(), color = c.label)
+                Spacer(Modifier.width(Space.s))
+                Text(
+                    "${TimeFormat.dayLabel(s.targetEpoch)} · ${TimerMath.procLabel(s.procS)}",
+                    style = ZzType.footnote,
+                    color = c.secondaryLabel,
+                    modifier = Modifier.padding(bottom = 3.dp),
+                )
+            }
             Text(
-                TimeFormat.time(s.targetEpoch),
-                fontFamily = FontFamily.Monospace,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
+                if (s.kind == 0) "Startschot · procedure start ${hm(s.pressEpoch)}"
+                else "Procedure start · startschot ${hm(s.pressEpoch + s.procS * 1000L)}",
+                style = ZzType.footnote,
+                color = c.secondaryLabel,
             )
-            val what = (if (s.kind == 0)
-                "Startschot · procedure start ${TimeFormat.time(s.pressEpoch)}"
-            else
-                "Procedure start · startschot ${TimeFormat.time(s.pressEpoch + s.procS * 1000L)}") +
-                " · ${TimerMath.procLabel(s.procS)}"
-            Text("${TimeFormat.dayLabel(s.targetEpoch)} · $what", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (onClock) {
-                Text(
-                    if (connected) "● Op de klok · start zelf" else "● Op de klok · start zelf (laatst bekend)",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = ZzColors.Ok,
-                    fontWeight = FontWeight.Bold,
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
+                Box(
+                    Modifier
+                        .size(7.dp)
+                        .clip(CircleShape)
+                        .background(if (onClock) c.positive else c.destructive),
                 )
-            } else {
+                Spacer(Modifier.width(6.dp))
                 Text(
-                    "○ Alleen telefoon · druk zelf START van de klok",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = ZzColors.Error,
-                    fontWeight = FontWeight.Bold,
+                    when {
+                        onClock && connected -> "Op de klok · start zelf"
+                        onClock -> "Op de klok · start zelf (laatst bekend)"
+                        else -> "Alleen telefoon · druk zelf START van de klok"
+                    },
+                    style = ZzType.footnote.copy(fontWeight = FontWeight.Medium),
+                    color = if (onClock) c.positive else c.destructive,
                 )
-                if (connected) {
-                    TextButton(onClick = onMoveToClock, contentPadding = PaddingValues(0.dp)) { Text("Op klok zetten") }
-                }
+            }
+            if (!onClock && connected) {
+                ZzButton(
+                    "Op klok zetten",
+                    onClick = onMoveToClock,
+                    style = ButtonStyle.Tinted,
+                    modifier = Modifier.padding(top = Space.s),
+                )
             }
             val until = s.pressEpoch - System.currentTimeMillis()
             if (until in 0..3_600_000L) {
                 Text(
                     "Waarschuwingssein over ${TimerMath.format(((until + 999) / 1000).toInt())}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = ZzColors.Horn,
-                    fontWeight = FontWeight.Bold,
+                    style = ZzType.footnote.tabular().copy(fontWeight = FontWeight.SemiBold, letterSpacing = 0.sp),
+                    color = c.warning,
+                    modifier = Modifier.padding(top = 2.dp),
                 )
             }
         }
-        IconButton(onClick = onEdit, enabled = enabled) { Icon(Icons.Filled.Edit, contentDescription = "Aanpassen") }
-        IconButton(onClick = onDelete, enabled = enabled) { Icon(Icons.Filled.Delete, contentDescription = "Verwijderen") }
+        IconButton(onClick = onEdit, enabled = enabled) {
+            Icon(Icons.Rounded.Edit, contentDescription = "Aanpassen", tint = if (enabled) c.accent else c.tertiaryLabel)
+        }
+        IconButton(onClick = onDelete, enabled = enabled) {
+            Icon(Icons.Rounded.Delete, contentDescription = "Verwijderen", tint = if (enabled) c.secondaryLabel else c.tertiaryLabel)
+        }
     }
 }
+
+/** Tijd zonder seconden (geplande starts vallen altijd op een hele minuut). */
+private fun hm(epochMs: Long): String = TimeFormat.time(epochMs).substringBeforeLast(':')
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ScheduleDialog(vm: TimerViewModel, initial: ScheduleInput, onDismiss: () -> Unit) {
+    val c = Zz.colors
     val picker = rememberTimePickerState(initialHour = initial.hour, initialMinute = initial.minute, is24Hour = true)
     var kind by remember { mutableIntStateOf(initial.kind) }
     var procS by remember { mutableIntStateOf(TimerMath.proc(initial.procS)) }
@@ -492,58 +536,70 @@ internal fun ScheduleDialog(vm: TimerViewModel, initial: ScheduleInput, onDismis
     var busy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (initial.id == null) "Geplande start" else "Geplande start aanpassen") },
-        text = {
-            Column(Modifier.verticalScroll(rememberScrollState())) {
-                TimeInput(state = picker)
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                    ProcChip("5 min doorstart", procS == TimerMath.PROCEDURE_S, Modifier.weight(1f)) { procS = TimerMath.PROCEDURE_S }
-                    ProcChip("3 min doorstart", procS == TimerMath.SHORT_S, Modifier.weight(1f)) { procS = TimerMath.SHORT_S }
-                }
-                val min = procS / 60
-                KindOption("Startschot (0:00) om dit tijdstip", "Procedure begint $min minuten eerder", kind == 0) { kind = 0 }
-                KindOption("Procedure start om dit tijdstip", "Startschot valt $min minuten later", kind == 1) { kind = 1 }
-                error?.let { Text(it, color = ZzColors.Error, modifier = Modifier.padding(top = 8.dp)) }
+    ZzDialog(
+        title = if (initial.id == null) "Geplande start" else "Geplande start aanpassen",
+        onDismiss = onDismiss,
+        confirmText = "Opslaan",
+        confirmEnabled = !busy,
+        onConfirm = {
+            busy = true
+            scope.launch {
+                val err = vm.saveSchedule(initial.copy(hour = picker.hour, minute = picker.minute, kind = kind, procS = procS))
+                busy = false
+                if (err == null) onDismiss() else error = err
             }
         },
-        confirmButton = {
-            TextButton(
-                enabled = !busy,
-                onClick = {
-                    busy = true
-                    scope.launch {
-                        val err = vm.saveSchedule(initial.copy(hour = picker.hour, minute = picker.minute, kind = kind, procS = procS))
-                        busy = false
-                        if (err == null) onDismiss() else error = err
-                    }
-                },
-            ) { Text("Opslaan") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuleren") } },
-    )
-}
-
-@Composable
-private fun ProcChip(label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    ModeChip(label, selected, modifier.selectable(selected = selected, onClick = onClick, role = Role.RadioButton))
+    ) {
+        Column(
+            Modifier.verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(Space.m),
+        ) {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                TimeInput(
+                    state = picker,
+                    colors = TimePickerDefaults.colors(
+                        timeSelectorSelectedContainerColor = c.accent.copy(alpha = if (c.isDark) 0.3f else 0.14f),
+                        timeSelectorUnselectedContainerColor = c.fill,
+                        timeSelectorSelectedContentColor = c.accent,
+                        timeSelectorUnselectedContentColor = c.label,
+                    ),
+                )
+            }
+            SegmentedControl(
+                options = listOf("5 min doorstart", "3 min doorstart"),
+                selected = if (procS == TimerMath.SHORT_S) 1 else 0,
+                onSelect = { procS = if (it == 1) TimerMath.SHORT_S else TimerMath.PROCEDURE_S },
+            )
+            val min = procS / 60
+            Column(Modifier.selectableGroup()) {
+                KindOption("Startschot (0:00) om dit tijdstip", "Procedure begint $min minuten eerder", kind == 0) { kind = 0 }
+                KindOption("Procedure start om dit tijdstip", "Startschot valt $min minuten later", kind == 1) { kind = 1 }
+            }
+            error?.let { Text(it, style = ZzType.footnote, color = c.destructive) }
+        }
+    }
 }
 
 @Composable
 private fun KindOption(title: String, subtitle: String, selected: Boolean, onSelect: () -> Unit) {
+    val c = Zz.colors
     Row(
         Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(Radius.small))
             .selectable(selected = selected, onClick = onSelect, role = Role.RadioButton)
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        RadioButton(selected = selected, onClick = null)
-        Spacer(Modifier.width(8.dp))
+        RadioButton(
+            selected = selected,
+            onClick = null,
+            colors = RadioButtonDefaults.colors(selectedColor = c.accent, unselectedColor = c.tertiaryLabel),
+        )
+        Spacer(Modifier.width(Space.m))
         Column {
-            Text(title)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(title, style = ZzType.body, color = c.label)
+            Text(subtitle, style = ZzType.footnote, color = c.secondaryLabel)
         }
     }
 }
@@ -555,37 +611,28 @@ private fun PinDialog(vm: TimerViewModel, onDismiss: () -> Unit, onUnlocked: () 
     var busy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Beheerders-PIN") },
-        text = {
-            Column {
-                Text("Voer de PIN in om de instellingen te openen.")
-                Spacer(Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = pin,
-                    onValueChange = { v -> pin = v.filter { it.isDigit() }.take(8) },
-                    label = { Text("PIN") },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                )
-                error?.let { Text(it, color = ZzColors.Error, modifier = Modifier.padding(top = 8.dp)) }
+    ZzDialog(
+        title = "Beheerders-PIN",
+        onDismiss = onDismiss,
+        confirmText = "Openen",
+        confirmEnabled = !busy && pin.length >= 4,
+        onConfirm = {
+            busy = true
+            scope.launch {
+                val err = vm.unlockSettings(pin)
+                busy = false
+                if (err == null) onUnlocked() else error = err
             }
         },
-        confirmButton = {
-            TextButton(
-                enabled = !busy && pin.length >= 4,
-                onClick = {
-                    busy = true
-                    scope.launch {
-                        val err = vm.unlockSettings(pin)
-                        busy = false
-                        if (err == null) onUnlocked() else error = err
-                    }
-                },
-            ) { Text("Openen") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuleren") } },
-    )
+    ) {
+        Text("Voer de PIN in om de instellingen te openen.", style = ZzType.callout, color = Zz.colors.secondaryLabel)
+        ZzTextField(
+            value = pin,
+            onValueChange = { v -> pin = v.filter { it.isDigit() }.take(8) },
+            label = "PIN",
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+        )
+        error?.let { Text(it, style = ZzType.footnote, color = Zz.colors.destructive) }
+    }
 }

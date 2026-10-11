@@ -3,30 +3,20 @@ package nl.julian.zztimer.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,7 +36,6 @@ import kotlinx.coroutines.launch
 import nl.julian.zztimer.TimeFormat
 import nl.julian.zztimer.TimerViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(vm: TimerViewModel, onBack: () -> Unit) {
     BackHandler(onBack = onBack)
@@ -74,195 +63,202 @@ fun SettingsScreen(vm: TimerViewModel, onBack: () -> Unit) {
 
     LaunchedEffect(status?.ssid) { if (ssid.isEmpty()) ssid = status?.ssid ?: "" }
 
+    val c = Zz.colors
+    val scroll = rememberScrollState()
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Instellingen") },
-                navigationIcon = {
+            ScreenHeader(
+                "Instellingen",
+                scrolled = scroll.value > 0,
+                navigation = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Terug")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Terug", tint = c.accent)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = c.background,
     ) { padding ->
         Column(
             Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+                .verticalScroll(scroll)
+                .padding(horizontal = Space.screen, vertical = Space.s),
+            verticalArrangement = Arrangement.spacedBy(Space.xl),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             val cardModifier = Modifier.widthIn(max = 640.dp)
 
-            SectionCard("ESP STATUS", cardModifier) {
-                InfoRow("WiFi", if (connected) "● Verbonden" else "○ Geen verbinding")
-                InfoRow("Netwerknaam", status?.ssid ?: "–")
-                InfoRow("IP-adres", status?.ip ?: vm.host)
-                InfoRow("Verbonden apparaten", status?.clients?.toString() ?: "–")
-                InfoRow("Firmware", status?.firmware ?: "–")
-                InfoRow("Actief sinds", status?.let { TimeFormat.duration(it.uptimeS) } ?: "–")
-                InfoRow("Klok gesynchroniseerd", if (status?.timeSynced == true) "Ja" else "Nee")
-                InfoRow("Reactietijd", rtt?.let { "$it ms" } ?: "–")
-                InfoRow("Signaal (telefoon)", signal?.let { "$it dBm" } ?: "–")
-                OutlinedButton(
-                    onClick = {
-                        testResult = "Bezig…"
-                        scope.launch {
-                            val r = vm.testConnection()
-                            testResult = if (r != null) "Timer bereikbaar, reactietijd $r ms." else "Timer niet bereikbaar."
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("VERBINDING TESTEN") }
-                testResult?.let { Text(it) }
+            Section("Timer", footer = testResult, modifier = cardModifier) {
+                ListRow("WiFi", trailing = { StatusValue(connected, "Verbonden", "Geen verbinding", c.positive) })
+                RowDivider()
+                ValueRow("Netwerknaam", status?.ssid ?: "–")
+                RowDivider()
+                ValueRow("IP-adres", status?.ip ?: vm.host)
+                RowDivider()
+                ValueRow("Verbonden apparaten", status?.clients?.toString() ?: "–")
+                RowDivider()
+                ValueRow("Firmware", status?.firmware ?: "–")
+                RowDivider()
+                ValueRow("Actief sinds", status?.let { TimeFormat.duration(it.uptimeS) } ?: "–")
+                RowDivider()
+                ValueRow("Klok gesynchroniseerd", if (status?.timeSynced == true) "Ja" else "Nee")
+                RowDivider()
+                ValueRow("Reactietijd", rtt?.let { "$it ms" } ?: "–")
+                RowDivider()
+                ValueRow("Signaal (telefoon)", signal?.let { "$it dBm" } ?: "–")
+                RowDivider()
+                ActionRow("Verbinding testen", onClick = {
+                    testResult = "Bezig…"
+                    scope.launch {
+                        val r = vm.testConnection()
+                        testResult = if (r != null) "Timer bereikbaar, reactietijd $r ms." else "Timer niet bereikbaar."
+                    }
+                })
             }
 
-            SectionCard("ESP WIFI", cardModifier) {
-                OutlinedTextField(
-                    value = ssid,
-                    onValueChange = { ssid = it.take(32) },
-                    label = { Text("Netwerknaam") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it.take(63) },
-                    label = { Text("Nieuw wachtwoord (8–63 tekens)") },
-                    singleLine = true,
-                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    trailingIcon = {
-                        TextButton(onClick = { showPassword = !showPassword }) {
-                            Text(if (showPassword) "Verberg" else "Toon")
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Button(
-                    onClick = { confirmWifi = true },
-                    enabled = connected && ssid.isNotBlank() && password.length >= 8,
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("OPSLAAN") }
-                wifiError?.let { Text(it, color = ZzColors.Error) }
-                Text(
-                    "Na opslaan start de timer het WiFi-netwerk opnieuw met de nieuwe gegevens. " +
-                        "Verbind de telefoon daarna opnieuw. Niet mogelijk tijdens een lopende procedure.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            Section(
+                "WiFi van de timer",
+                footer = "Na opslaan start de timer het WiFi-netwerk opnieuw met de nieuwe gegevens. " +
+                    "Verbind de telefoon daarna opnieuw. Niet mogelijk tijdens een lopende procedure.",
+                modifier = cardModifier,
+            ) {
+                Column(Modifier.padding(Space.l), verticalArrangement = Arrangement.spacedBy(Space.m)) {
+                    ZzTextField(
+                        value = ssid,
+                        onValueChange = { ssid = it.take(32) },
+                        label = "Netwerknaam",
+                    )
+                    ZzTextField(
+                        value = password,
+                        onValueChange = { password = it.take(63) },
+                        label = "Nieuw wachtwoord (8–63 tekens)",
+                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        trailingIcon = {
+                            TextButton(onClick = { showPassword = !showPassword }) {
+                                Text(if (showPassword) "Verberg" else "Toon", style = ZzType.callout, color = c.accent)
+                            }
+                        },
+                    )
+                    ZzButton(
+                        "Opslaan",
+                        onClick = { confirmWifi = true },
+                        enabled = connected && ssid.isNotBlank() && password.length >= 8,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    wifiError?.let { Footnote(it, color = c.destructive) }
+                }
             }
 
-            SectionCard("BEHEERDERS-PIN", cardModifier) {
-                OutlinedTextField(
-                    value = newPin,
-                    onValueChange = { v -> newPin = v.filter { it.isDigit() }.take(8) },
-                    label = { Text("Nieuwe PIN (4–8 cijfers)") },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = newPin2,
-                    onValueChange = { v -> newPin2 = v.filter { it.isDigit() }.take(8) },
-                    label = { Text("Herhaal nieuwe PIN") },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedButton(
-                    onClick = {
-                        if (newPin != newPin2) {
-                            pinMessage = "De PIN-codes zijn niet gelijk."
-                        } else {
-                            scope.launch {
-                                val err = vm.changePin(newPin)
-                                pinMessage = err ?: "PIN gewijzigd."
-                                if (err == null) {
-                                    newPin = ""
-                                    newPin2 = ""
+            Section("Beheerders-PIN", modifier = cardModifier) {
+                Column(Modifier.padding(Space.l), verticalArrangement = Arrangement.spacedBy(Space.m)) {
+                    ZzTextField(
+                        value = newPin,
+                        onValueChange = { v -> newPin = v.filter { it.isDigit() }.take(8) },
+                        label = "Nieuwe PIN (4–8 cijfers)",
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    )
+                    ZzTextField(
+                        value = newPin2,
+                        onValueChange = { v -> newPin2 = v.filter { it.isDigit() }.take(8) },
+                        label = "Herhaal nieuwe PIN",
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    )
+                    ZzButton(
+                        "PIN wijzigen",
+                        onClick = {
+                            if (newPin != newPin2) {
+                                pinMessage = "De PIN-codes zijn niet gelijk."
+                            } else {
+                                scope.launch {
+                                    val err = vm.changePin(newPin)
+                                    pinMessage = err ?: "PIN gewijzigd."
+                                    if (err == null) {
+                                        newPin = ""
+                                        newPin2 = ""
+                                    }
                                 }
                             }
-                        }
-                    },
-                    enabled = connected && newPin.length >= 4,
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("PIN WIJZIGEN") }
-                pinMessage?.let { Text(it) }
+                        },
+                        style = ButtonStyle.Tinted,
+                        enabled = connected && newPin.length >= 4,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    pinMessage?.let { Footnote(it, color = if (it == "PIN gewijzigd.") c.positive else c.destructive) }
+                }
             }
 
-            SectionCard("APP", cardModifier) {
-                OutlinedTextField(
-                    value = host,
-                    onValueChange = { host = it.trim() },
-                    label = { Text("IP-adres van de timer") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedButton(
-                    onClick = {
-                        vm.saveHost(host.ifBlank { TimerViewModel.DEFAULT_HOST })
-                        hostMessage = "Opgeslagen. Er wordt opnieuw verbonden."
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("OPSLAAN") }
-                hostMessage?.let { Text(it) }
-                Text(
-                    "Standaard: ${TimerViewModel.DEFAULT_HOST}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            Section("App", footer = "Standaard: ${TimerViewModel.DEFAULT_HOST}", modifier = cardModifier) {
+                Column(Modifier.padding(Space.l), verticalArrangement = Arrangement.spacedBy(Space.m)) {
+                    ZzTextField(
+                        value = host,
+                        onValueChange = { host = it.trim() },
+                        label = "IP-adres van de timer",
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                    )
+                    ZzButton(
+                        "Opslaan",
+                        onClick = {
+                            vm.saveHost(host.ifBlank { TimerViewModel.DEFAULT_HOST })
+                            hostMessage = "Opgeslagen. Er wordt opnieuw verbonden."
+                        },
+                        style = ButtonStyle.Tinted,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    hostMessage?.let { Footnote(it, color = c.positive) }
+                }
             }
 
-            Spacer(Modifier.height(4.dp))
-            Text(
+            Footnote(
                 "ZZ Wedstrijd Timer · Made by Julian",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(bottom = Space.l),
             )
-            Spacer(Modifier.height(8.dp))
         }
     }
 
     if (confirmWifi) {
-        AlertDialog(
-            onDismissRequest = { confirmWifi = false },
-            title = { Text("WiFi wijzigen?") },
-            text = { Text("De verbinding met de timer valt even weg. Daarna verbind je met \"$ssid\".") },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmWifi = false
-                    val target = ssid
-                    scope.launch {
-                        val err = vm.saveWifi(target, password)
-                        wifiError = err
-                        if (err == null) {
-                            password = ""
-                            wifiChangedTo = target
-                        }
+        ZzDialog(
+            title = "WiFi wijzigen?",
+            onDismiss = { confirmWifi = false },
+            confirmText = "Wijzigen",
+            onConfirm = {
+                confirmWifi = false
+                val target = ssid
+                scope.launch {
+                    val err = vm.saveWifi(target, password)
+                    wifiError = err
+                    if (err == null) {
+                        password = ""
+                        wifiChangedTo = target
                     }
-                }) { Text("Wijzigen") }
+                }
             },
-            dismissButton = { TextButton(onClick = { confirmWifi = false }) { Text("Annuleren") } },
-        )
+        ) {
+            Text("De verbinding met de timer valt even weg. Daarna verbind je met \"$ssid\".", style = ZzType.callout, color = Zz.colors.secondaryLabel)
+        }
     }
 
     wifiChangedTo?.let { name ->
-        AlertDialog(
-            onDismissRequest = { wifiChangedTo = null },
-            title = { Text("WiFi-instellingen gewijzigd") },
-            text = { Text("Maak opnieuw verbinding met:\n$name\n\nOpen daarvoor de WiFi-instellingen van je telefoon. De app verbindt daarna vanzelf.") },
-            confirmButton = { TextButton(onClick = { wifiChangedTo = null }) { Text("OK") } },
-        )
+        ZzDialog(
+            title = "WiFi-instellingen gewijzigd",
+            onDismiss = { wifiChangedTo = null },
+            confirmText = "OK",
+            dismissText = null,
+            onConfirm = { wifiChangedTo = null },
+        ) {
+            Text("Maak opnieuw verbinding met:", style = ZzType.callout, color = Zz.colors.secondaryLabel)
+            Text(name, style = ZzType.headline, color = Zz.colors.label)
+            Text(
+                "Open daarvoor de WiFi-instellingen van je telefoon. De app verbindt daarna vanzelf.",
+                style = ZzType.callout,
+                color = Zz.colors.secondaryLabel,
+            )
+        }
     }
 }

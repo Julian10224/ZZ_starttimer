@@ -13,6 +13,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -48,7 +54,7 @@ private object SignalColors {
     val Red = Color(0xFFFF0000)
     val Black = Color(0xFF000000)
     val White = Color(0xFFFFFFFF)
-    val Edge = Color(0xFF8A9BB0)      // dunne rand, alleen zodat zwart/wit zichtbaar blijft
+    val Edge = Color(0xFF9A9AA0)      // dunne rand, alleen zodat zwart/wit zichtbaar blijft
 }
 
 /** Breedte/hoogte van een vlag. */
@@ -199,75 +205,84 @@ private fun DrawScope.drawAnswering() {
 /** Vlag met naam eronder, voor de vlaggenpagina. */
 @Composable
 fun FlagCard(flag: ShownFlag, height: Dp, modifier: Modifier = Modifier) {
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        SignalFlag(flag, height)
+    val c = Zz.colors
+    Column(modifier.widthIn(max = height * 1.6f), horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(Modifier.shadow(if (c.isDark) 0.dp else 3.dp, RoundedCornerShape(2.dp))) {
+            SignalFlag(flag, height)
+        }
         Text(
             flag.label,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 6.dp),
+            style = ZzType.bodyEmphasis,
+            color = c.label,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = Space.s),
         )
-        Text("● OP", color = ZzColors.Ok, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+        Text("Op", style = ZzType.footnote.copy(fontWeight = FontWeight.SemiBold), color = c.positive)
     }
 }
 
 /** Lege plek als er geen vlag staat. */
 @Composable
 fun NoFlags(height: Dp) {
+    val c = Zz.colors
     Box(
         Modifier
             .height(height)
             .width(height)
-            .border(1.5.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp)),
+            .border(1.dp, c.separator, RoundedCornerShape(Radius.small)),
         contentAlignment = Alignment.Center,
     ) {
-        Text("Geen vlaggen", color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+        Text("Geen vlaggen", style = ZzType.footnote, color = c.secondaryLabel, textAlign = TextAlign.Center)
     }
 }
 
 /**
- * Vlag die eraan komt: vlag, "▲ OP" of "▼ NEER" en de tijd tot dat moment. [main] is de
+ * Vlag die eraan komt: vlag, "Op" of "Neer" en de tijd tot dat moment. [main] is de
  * grote kaart "VOLGENDE"; de kleinere kaart is "DAARNA". In de laatste 10 s licht de
  * grote kaart op.
  */
 @Composable
 fun UpcomingCard(item: UpcomingFlag, main: Boolean, modifier: Modifier = Modifier) {
+    val c = Zz.colors
     val soon = main && item.inSeconds <= 10
-    val dirColor = if (item.up) ZzColors.Ok else ZzColors.Horn
+    val dirColor = if (item.up) c.positive else c.warning
+    val bg by animateColorAsState(
+        if (soon) c.warning.copy(alpha = if (c.isDark) 0.24f else 0.12f) else c.surface,
+        tween(Motion.STANDARD), label = "volgende",
+    )
     Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = if (soon) ZzColors.Horn.copy(alpha = 0.22f) else MaterialTheme.colorScheme.surfaceVariant,
-        border = if (soon) BorderStroke(2.dp, ZzColors.Horn) else null,
+        shape = RoundedCornerShape(Radius.medium),
+        color = bg,
+        border = if (soon) BorderStroke(1.5.dp, c.warning) else null,
         modifier = modifier,
     ) {
-        Column(Modifier.padding(10.dp)) {
+        Column(Modifier.padding(Space.m)) {
             Text(
                 if (main) "VOLGENDE" else "DAARNA",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                letterSpacing = 1.5.sp,
+                style = ZzType.caption,
+                color = c.secondaryLabel,
             )
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
-                SignalFlag(item.flag, if (main) 56.dp else 38.dp)
-                Column(Modifier.padding(start = 10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = Space.s)) {
+                SignalFlag(item.flag, if (main) 48.dp else 34.dp)
+                Column(Modifier.padding(start = Space.m)) {
                     Text(
                         item.flag.label,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = if (main) 16.sp else 13.sp,
+                        style = if (main) ZzType.bodyEmphasis else ZzType.footnote.copy(fontWeight = FontWeight.Medium),
+                        color = c.label,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        if (item.up) "▲ OP" else "▼ NEER",
+                        if (item.up) "▲ Op" else "▼ Neer",
+                        style = (if (main) ZzType.footnote else ZzType.caption).copy(fontWeight = FontWeight.Bold),
                         color = dirColor,
-                        fontWeight = FontWeight.Black,
-                        fontSize = if (main) 15.sp else 12.sp,
                     )
                     Text(
                         "over ${FlagLogic.mmss(item.inSeconds)}",
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = if (main) FontWeight.Bold else FontWeight.Medium,
-                        fontSize = if (main) 20.sp else 14.sp,
+                        style = (if (main) ZzType.headline else ZzType.footnote).tabular().copy(letterSpacing = 0.sp),
+                        color = if (soon) c.warning else c.label,
                     )
                 }
             }
@@ -279,7 +294,7 @@ fun UpcomingCard(item: UpcomingFlag, main: Boolean, modifier: Modifier = Modifie
 @Composable
 fun UpcomingFlags(items: List<UpcomingFlag>, modifier: Modifier = Modifier) {
     if (items.isEmpty()) return
-    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Space.m)) {
         UpcomingCard(items[0], main = true, modifier = Modifier.weight(1.25f))
         if (items.size > 1) UpcomingCard(items[1], main = false, modifier = Modifier.weight(1f))
         else Spacer(Modifier.weight(1f))
@@ -289,13 +304,21 @@ fun UpcomingFlags(items: List<UpcomingFlag>, modifier: Modifier = Modifier) {
 /** Compacte regel voor de Timer-pagina: kleine vlag + "P-vlag op over 0:45". */
 @Composable
 fun UpcomingLine(item: UpcomingFlag) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-        Text("Volgende vlag: ", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        SignalFlag(item.flag, 22.dp)
+    val c = Zz.colors
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(Radius.medium))
+            .background(c.surface)
+            .padding(horizontal = Space.m, vertical = Space.s),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        SignalFlag(item.flag, 20.dp)
+        Spacer(Modifier.width(Space.s))
         Text(
-            "  ${item.flag.label} ${if (item.up) "▲ op" else "▼ neer"} over ${FlagLogic.mmss(item.inSeconds)}",
-            fontWeight = FontWeight.Bold,
-            color = if (item.inSeconds <= 10) ZzColors.Horn else MaterialTheme.colorScheme.onSurface,
+            "${item.flag.label} ${if (item.up) "op" else "neer"} over ${FlagLogic.mmss(item.inSeconds)}",
+            style = ZzType.callout.tabular().copy(fontWeight = FontWeight.Medium, letterSpacing = 0.sp),
+            color = if (item.inSeconds <= 10) c.warning else c.label,
         )
     }
 }

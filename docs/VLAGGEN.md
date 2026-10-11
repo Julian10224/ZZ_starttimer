@@ -1,4 +1,4 @@
-# Vlaggenpagina (app 1.8)
+# Vlaggenpagina (app 1.8 en 1.9)
 
 De app heeft een tweede pagina, **Vlaggen**, bereikbaar via de navigatiebalk onderaan (Timer · Vlaggen). Die toont de seinvlaggen van de startprocedure en telt hardop af in het Nederlands, op basis van de tijd van de timer zelf. Het gedrag is gebaseerd op de app *Start Timer* (Leonenko); vlaggen, geluiden en teksten zijn zelf gemaakt en niet overgenomen.
 
@@ -56,7 +56,7 @@ Het verloop op de vlaggenpagina toont dan drie stappen (3:00, 1:00, 0:00).
 
 De vlaggen, de stem en de seinen werken ook als de telefoon niet met de klok verbonden is. De telefoon telt dan zelf.
 
-- Bovenaan staat een rode melding **○ KLOK NIET VERBONDEN**.
+- Bovenaan staat een rode melding **Klok niet verbonden**.
 - **START in de app**:
   - *10 s aftellen*: de stem zegt "Klassevlag op over tien seconden" en telt "Vijf … Eén", in beeld staat "Druk bij 0 op START van de klok"; op 0 verschijnt groot **DRUK NU OP START VAN DE KLOK** en zegt de stem "Druk nu op start". Druk dan op de startknop van de klok, zodat klok en telefoon gelijk lopen.
   - *Direct*: meteen **DRUK NU OP START VAN DE KLOK**.

@@ -4,6 +4,14 @@ Alle wijzigingen per versie. De versies staan in `firmware/Timer_ZZ_Vx/` en als 
 
 ---
 
+## App 1.9 — nieuwe vormgeving
+
+- Volledig nieuwe, rustige vormgeving van de Android-app; werking, protocol en opgeslagen instellingen zijn gelijk aan 1.8.
+- Centraal designsysteem (`ui/Theme.kt`, `ui/Components.kt`): kleuren voor licht en donker thema, typografie, afstanden, hoekafrondingen en animatieduur.
+- Gegroepeerde lijsten, grote paginatitels, segmentknoppen, eigen tabbalk, vaste cijferbreedte voor tijden.
+- Liggend compactere titel en tabbalk; respecteert "Animaties verwijderen".
+- Zie [docs/ANDROID_APP.md](docs/ANDROID_APP.md#vormgeving-vanaf-app-19).
+
 ## V7 — herhaalmodus en tweede groot display
 
 - **Optelmodus vervallen** (`countingUp` verwijderd). De timer telt altijd af vanaf 5:00; ook de beginstand in rust is altijd 5:00.

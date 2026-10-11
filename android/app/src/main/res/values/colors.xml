@@ -2,4 +2,6 @@
 <resources>
     <color name="navy">#FF0B1B2B</color>
     <color name="ic_launcher_background">#FF0B1B2B</color>
+    <!-- Achtergrond van het venster, gelijk aan de achtergrond van de app (licht thema) -->
+    <color name="window_bg">#FFF2F2F7</color>
 </resources>
