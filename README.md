@@ -5,6 +5,10 @@ Firmware voor een ESP32-gestuurde starttimer met hoornrelais, twee displays en e
 Deze repository bevat alle zeven ontwikkelversies. Elke versie staat in een eigen map én als eigen commit met tag (`v1` t/m `v7`) in de git-historie, zodat je de verschillen tussen versies direct kunt vergelijken.
 
 > **Laatste versie: V7** (`firmware/Timer_ZZ_V7`). V1 en V2 compileren niet zonder aanpassing (zie [Bekende problemen](#bekende-problemen)).
+>
+> **V7A:** V7 met WiFi en de Android-app *ZZ Wedstrijd Timer* — zie [V7A en Android-app](#v7a-en-android-app).
+>
+> **Branches:** `ZZ` (deze branch: V1–V7 en V7A) en `tonnie` (V8–V12 voor het bord met PWM-relais en het nieuwe matrixboard).
 
 ---
 
@@ -17,6 +21,7 @@ Deze repository bevat alle zeven ontwikkelversies. Elke versie staat in een eige
 - [Opbouw van de code](#opbouw-van-de-code)
 - [Het schuifregister-display](#het-schuifregister-display)
 - [Versieoverzicht](#versieoverzicht)
+- [V7A en Android-app](#v7a-en-android-app)
 - [Bouwen en uploaden](#bouwen-en-uploaden)
 - [Firmware flashen (release)](#firmware-flashen-release)
 - [Bekende problemen](#bekende-problemen)
@@ -30,7 +35,10 @@ timer-zz/
 ├── README.md              ← dit bestand
 ├── CHANGELOG.md           ← gedetailleerde wijzigingen per versie
 ├── .github/workflows/
-│   └── release.yml        ← bouwt de .bin-bestanden en maakt een GitHub-release
+│   ├── release.yml        ← bouwt de .bin-bestanden en maakt een GitHub-release
+│   └── android.yml        ← bouwt de APK van de Android-app
+├── android/               ← Android-app ZZ Wedstrijd Timer
+├── docs/                  ← V7A, protocol, app, testplan, vlaggen
 └── firmware/
     ├── Timer_ZZ_V1/Timer_ZZ_V1.ino
     ├── Timer_ZZ_V2/Timer_ZZ_V2.ino
@@ -38,7 +46,8 @@ timer-zz/
     ├── Timer_ZZ_V4/Timer_ZZ_V4.ino
     ├── Timer_ZZ_V5/Timer_ZZ_V5.ino
     ├── Timer_ZZ_V6/Timer_ZZ_V6.ino
-    └── Timer_ZZ_V7/Timer_ZZ_V7.ino
+    ├── Timer_ZZ_V7/Timer_ZZ_V7.ino
+    └── Timer_ZZ_V7A/Timer_ZZ_V7A.ino ← V7 met WiFi en de Android-app
 ```
 
 Elke versie staat in een map met dezelfde naam als het `.ino`-bestand; de Arduino IDE vereist dat. De code zelf is ongewijzigd ten opzichte van de originele bestanden — alleen de bestandsnamen zijn gelijkgetrokken (`Timer_ZZ.ino` → `Timer_ZZ_V1.ino`, `Timer_ZZV5.ino` → `Timer_ZZ_V5.ino`, `Timer_ZZV6.ino` → `Timer_ZZ_V6.ino`, `Timer_ZZV7.ino` → `Timer_ZZ_V7.ino`).
@@ -229,12 +238,29 @@ In V7 schuift `updateShiftRegisterDisplay()` dezelfde drie bytes twee keer in (z
 | **V5** | Reset direct bij indrukken, handmatige hoorn ook toegestaan tussen 5:00 en 4:00, auto-slaap na 6 min, pinnen `horn_button`/`timer_switch` gewisseld. |
 | **V6** | Instelbare relaisduur: 0,5 s bij start en 4:00, 1 s bij 1:00 en 0:00. |
 | **V7** | Optelmodus vervangen door herhaalmodus (elke 5 min een nieuwe cyclus), tweede groot display, beginstand altijd 5:00, signaalcontrole elke loop-doorgang. |
+| **V7A** | V7 met WiFi access point + WebSocket voor de Android-app, geplande starts, beheerders-PIN, timer op absolute tijd, relais-timeout-fout opgelost, robuuste opbouw (netwerk in eigen taak, watchdog, herstel na crash). |
 
 Zie [CHANGELOG.md](CHANGELOG.md) voor de volledige beschrijving per versie. Verschillen bekijken kan ook met git, bijvoorbeeld:
 
 ```bash
 git diff v6 v7 -- firmware/
 ```
+
+---
+
+## V7A en Android-app
+
+V7A is V7 plus een eigen WiFi-netwerk waarmee de Android-app *ZZ Wedstrijd Timer* de timer bedient en precies dezelfde tijd toont. Hardware, pinnen, displays, hoornmomenten en bediening zijn gelijk aan V7; de app-functionaliteit is dezelfde als op de branch `tonnie`.
+
+| Document | Inhoud |
+|---|---|
+| [docs/V7A_APP.md](docs/V7A_APP.md) | Wat er in V7A gelijk is aan V7 en wat er bij komt |
+| [docs/PROTOCOL.md](docs/PROTOCOL.md) | Communicatie tussen ESP en app |
+| [docs/ANDROID_APP.md](docs/ANDROID_APP.md) | App installeren, bouwen en verbinden |
+| [docs/VLAGGEN.md](docs/VLAGGEN.md) | Vlaggenpagina in de app |
+| [docs/TESTPLAN.md](docs/TESTPLAN.md) | Testplan V7A + app |
+
+V7A heeft twee extra bibliotheken nodig: **WebSockets** (Markus Sattler, 2.7.2) en **ArduinoJson** (7.4.3).
 
 ---
 

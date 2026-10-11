@@ -1,0 +1,143 @@
+package nl.julian.zztimer.ui
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import nl.julian.zztimer.TimerViewModel
+
+/**
+ * START / STOP-RESET met daaronder de keuze "10 s aftellen" of "Direct", en de melding
+ * als er een start aankomt. Staat op beide pagina's, zodat de bediening overal gelijk is.
+ */
+@Composable
+fun StartControls(vm: TimerViewModel, connected: Boolean) {
+    val status by vm.status.collectAsStateWithLifecycle()
+    val flagState by vm.flags.state.collectAsStateWithLifecycle()
+    val settings by vm.flags.settings.collectAsStateWithLifecycle()
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        flagState.banner?.let { InstructionBanner(it, flagState.bannerUrgent) }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            BigButton(
+                text = "START",
+                color = ZzColors.Go,
+                enabled = flagState.canStart,
+                onClick = vm::start,
+                modifier = Modifier.weight(1f),
+            )
+            BigButton(
+                text = "STOP / RESET",
+                color = ZzColors.Stop,
+                enabled = true,
+                onClick = vm::reset,
+                modifier = Modifier.weight(1f),
+            )
+        }
+
+        Row(
+            Modifier.fillMaxWidth().selectableGroup(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Niet wijzigen terwijl de procedure loopt of een start eraan komt
+            val locked = flagState.running || flagState.resuming
+            StartModeOption("10 s aftellen", settings.countdownStart, !locked, Modifier.weight(1f)) { vm.flags.setCountdownStart(true) }
+            StartModeOption("Direct", !settings.countdownStart, !locked, Modifier.weight(1f)) { vm.flags.setCountdownStart(false) }
+        }
+        if (flagState.running || flagState.resuming) {
+            Text(
+                "Keuze vergrendeld tot de procedure is afgelopen of gestopt.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        if (flagState.resuming) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    "● Waarschuwingssein over ${flagState.timeText}",
+                    color = ZzColors.Horn,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = vm.flags::cancelResume) { Text("Annuleren") }
+            }
+        }
+
+        if (flagState.local) {
+            Text(
+                "Klok niet verbonden: START en RESET gelden voor de telefoon. Druk START/RESET van de klok op het aangegeven moment.",
+                style = MaterialTheme.typography.bodySmall,
+                color = ZzColors.Error,
+            )
+        }
+
+        if (connected && status != null && status?.ledPanel == false) {
+            Text(
+                "Het LED-paneel staat uit. Zet het aan om te kunnen starten.",
+                style = MaterialTheme.typography.bodySmall,
+                color = ZzColors.Error,
+            )
+        }
+    }
+}
+
+/** Opvallende instructie, bijv. "DRUK NU OP START VAN DE KLOK". */
+@Composable
+fun InstructionBanner(text: String, urgent: Boolean) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = if (urgent) ZzColors.Horn else ZzColors.Horn.copy(alpha = 0.2f),
+        contentColor = if (urgent) androidx.compose.ui.graphics.Color.Black else ZzColors.Horn,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text,
+            fontWeight = FontWeight.Black,
+            fontSize = if (urgent) 22.sp else 17.sp,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = androidx.compose.ui.Modifier.padding(vertical = 14.dp, horizontal = 12.dp),
+        )
+    }
+}
+
+@Composable
+private fun StartModeOption(label: String, selected: Boolean, enabled: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier
+            .height(44.dp)
+            .alpha(if (enabled) 1f else 0.5f)
+            .clickable(enabled = enabled, role = Role.RadioButton, onClick = onClick),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+            Text(
+                if (selected) "● $label" else label,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                fontSize = 15.sp,
+            )
+        }
+    }
+}

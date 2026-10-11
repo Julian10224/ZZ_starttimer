@@ -1,0 +1,78 @@
+name: Android app
+
+# Bouwt de APK bij elke push naar de branch ZZ (als er iets in android/ wijzigt).
+# De APK staat daarna onder Actions → run → Artifacts.
+# Handmatig met "release" aangevinkt: maakt ook een GitHub-release met de APK.
+
+on:
+  push:
+    branches: [ZZ]
+    paths:
+      - "android/**"
+      - ".github/workflows/android.yml"
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "GitHub-release maken met de APK"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: APK bouwen
+        run: |
+          chmod +x gradlew
+          set -o pipefail
+          ./gradlew --no-daemon assembleRelease 2>&1 | tee build.log
+
+      - name: Compileerfouten tonen
+        if: failure()
+        run: |
+          # Zet de belangrijkste foutregels als annotatie bij de run (zichtbaar in de samenvatting).
+          grep -E "^e: |What went wrong|error:|Could not" build.log | head -60 > errors.txt || true
+          split -l 6 errors.txt part_ || true
+          for f in part_*; do
+            msg=$(sed ':a;N;$!ba;s/%/%25/g;s/\r//g;s/\n/%0A/g' "$f")
+            echo "::error::$msg"
+          done
+
+      - name: Versie en bestandsnaam
+        id: v
+        run: |
+          VERSION=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          cp app/build/outputs/apk/release/app-release.apk "ZZ-Wedstrijd-Timer-$VERSION.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZZ-Wedstrijd-Timer-apk
+          path: android/ZZ-Wedstrijd-Timer-*.apk
+
+      - name: GitHub-release maken
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.release }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: zz-app-v${{ steps.v.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: ZZ Wedstrijd Timer app ${{ steps.v.outputs.version }} (branch ZZ)
+          body: |
+            Android-app voor de ZZ Wedstrijd Timer (werkt met firmware V7A).
+            Installeren: download de APK op je telefoon en open het bestand. Zie docs/ANDROID_APP.md.
+          files: android/ZZ-Wedstrijd-Timer-*.apk

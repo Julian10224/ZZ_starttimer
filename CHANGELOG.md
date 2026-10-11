@@ -4,6 +4,14 @@ Alle wijzigingen per versie. De versies staan in `firmware/Timer_ZZ_Vx/` en als 
 
 ---
 
+## V7A — V7 met de app-functionaliteit
+
+- Gebaseerd op V7: zelfde pinnen, normaal relais, twee grote displays (6 registers), segmentmapping, lampje toeterknop (`LOW` = toegestaan), modi en slaapmodus.
+- App-functionaliteit overgenomen uit V12 (branch `tonnie`): WiFi access point, WebSocket (poort 81), bediening vanuit de app, geplande starts, beheerders-PIN, timer op absolute tijd.
+- Relais-timeout-fout van V2–V7 opgelost (hoornsignaal kon wegvallen).
+- Robuuste opbouw: netwerk in een eigen taak op kern 0, watchdog op de timerlus, herstel van een lopende procedure na een crash.
+- `FW_VERSION` = `"V7A"`. Zie [docs/V7A_APP.md](docs/V7A_APP.md).
+
 ## V7 — herhaalmodus en tweede groot display
 
 - **Optelmodus vervallen** (`countingUp` verwijderd). De timer telt altijd af vanaf 5:00; ook de beginstand in rust is altijd 5:00.

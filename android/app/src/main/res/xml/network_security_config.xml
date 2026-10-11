@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- De ESP gebruikt een eigen WiFi-netwerk zonder internet en spreekt ws:// (niet versleuteld).
+     WiFi-wachtwoord beveiligt de verbinding; daarom is niet-versleuteld verkeer toegestaan. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
