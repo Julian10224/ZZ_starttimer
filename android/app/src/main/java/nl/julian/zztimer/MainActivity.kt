@@ -8,10 +8,16 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -25,7 +31,10 @@ import nl.julian.zztimer.ui.MainScreen
 import nl.julian.zztimer.ui.NavIcons
 import nl.julian.zztimer.ui.SettingsScreen
 import nl.julian.zztimer.ui.SplashScreen
+import nl.julian.zztimer.ui.Motion
+import nl.julian.zztimer.ui.Zz
 import nl.julian.zztimer.ui.ZzTheme
+import nl.julian.zztimer.ui.ZzType
 
 class MainActivity : ComponentActivity() {
 
@@ -54,7 +63,11 @@ private fun AppRoot(vm: TimerViewModel) {
         }
     }
 
-    Crossfade(targetState = if (showSplash) "splash" else screen, label = "scherm") { target ->
+    Crossfade(
+        targetState = if (showSplash) "splash" else screen,
+        animationSpec = tween(Motion.STANDARD),
+        label = "scherm",
+    ) { target ->
         when (target) {
             "splash" -> SplashScreen()
             "settings" -> SettingsScreen(vm, onBack = {
@@ -74,21 +87,34 @@ private fun AppRoot(vm: TimerViewModel) {
     }
 }
 
-/** Navigatie tussen de timer en de vlaggenpagina. */
+/** Navigatie tussen de timer en de vlaggenpagina: rustige tabbalk met een haarlijn erboven. */
 @Composable
 private fun BottomNav(current: String, onSelect: (String) -> Unit) {
-    NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-        NavigationBarItem(
-            selected = current == "main",
-            onClick = { onSelect("main") },
-            icon = { Icon(NavIcons.Stopwatch, contentDescription = null) },
-            label = { Text("Timer") },
-        )
-        NavigationBarItem(
-            selected = current == "flags",
-            onClick = { onSelect("flags") },
-            icon = { Icon(NavIcons.Flag, contentDescription = null) },
-            label = { Text("Vlaggen") },
-        )
+    val c = Zz.colors
+    val colors = NavigationBarItemDefaults.colors(
+        selectedIconColor = c.accent,
+        selectedTextColor = c.accent,
+        indicatorColor = Color.Transparent,
+        unselectedIconColor = c.secondaryLabel,
+        unselectedTextColor = c.secondaryLabel,
+    )
+    Column {
+        HorizontalDivider(thickness = 0.5.dp, color = c.separator)
+        NavigationBar(containerColor = c.surface, tonalElevation = 0.dp) {
+            NavigationBarItem(
+                selected = current == "main",
+                onClick = { onSelect("main") },
+                icon = { Icon(NavIcons.Stopwatch, contentDescription = null) },
+                label = { Text("Timer", style = ZzType.caption.copy(letterSpacing = 0.sp)) },
+                colors = colors,
+            )
+            NavigationBarItem(
+                selected = current == "flags",
+                onClick = { onSelect("flags") },
+                icon = { Icon(NavIcons.Flag, contentDescription = null) },
+                label = { Text("Vlaggen", style = ZzType.caption.copy(letterSpacing = 0.sp)) },
+                colors = colors,
+            )
+        }
     }
 }
