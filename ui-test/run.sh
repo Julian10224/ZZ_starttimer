@@ -7,13 +7,17 @@ PKG=nl.julian.zztimer
 APK=android/app/build/outputs/apk/debug/app-debug.apk
 UI="python3 ui-test/ui.py"
 
-shot() { sleep "${2:-1.5}"; adb exec-out screencap -p > "$OUT/$1.png"; echo "screenshot $1"; }
+shot() { sleep "${2:-1.5}"; $UI clearanr; adb exec-out screencap -p > "$OUT/$1.png"; echo "screenshot $1"; }
 scen() { echo "$1" > /tmp/esp_scenario.json; }
 swipe() { adb shell input swipe 540 1750 540 750 450; sleep 1; }
 swipe_top() { for i in 1 2 3 4; do adb shell input swipe 540 700 540 2000 200; done; sleep 0.8; }
 launch() { adb shell am force-stop $PKG; adb shell am start -n $PKG/.MainActivity >/dev/null; }
 
+adb shell settings put global hide_error_dialogs 1
 adb shell settings put system screen_off_timeout 1800000
+sleep 25
+adb shell input keyevent HOME
+sleep 5
 adb shell svc power stayon true
 adb install -r -g "$APK"
 adb shell wm size; adb shell wm density
@@ -43,7 +47,7 @@ run_set() {   # $1 = voorvoegsel
   swipe; shot ${P}03_timer_scroll2
   swipe; shot ${P}03b_timer_scroll3
   swipe_top
-  $UI tap "Vlaggen" 810 2225; shot ${P}04_flags 2
+  $UI tap "Vlaggen" 810 2262; shot ${P}04_flags 2
   swipe; shot ${P}05_flags_scroll1
   swipe; shot ${P}06_flags_scroll2
   swipe; shot ${P}07_flags_scroll3
@@ -51,7 +55,7 @@ run_set() {   # $1 = voorvoegsel
   swipe_top
   $UI tap "Instellingen vlaggen en stem" 1006 190; shot ${P}08_flagsettings 2
   adb shell input keyevent BACK; sleep 1
-  $UI tap "Timer" 270 2225; sleep 1
+  $UI tap "Timer" 270 2262; sleep 1
   $UI tap "Instellingen" 1006 190; shot ${P}09_pin 2
   adb shell input keyevent TAB; adb shell input text 1234; sleep 0.5
   shot ${P}09b_pin_typed 0.5
@@ -70,12 +74,12 @@ run_set() {   # $1 = voorvoegsel
   scen '{"running": false, "elapsed_s": 0, "proc_s": 300}'; shot ${P}14_timer_idle 2.5
   # 3 minuten, 30 s gelopen
   scen '{"running": true, "elapsed_s": 30, "proc_s": 180}'
-  $UI tap "Vlaggen" 810 2225; shot ${P}15_flags_3min 2.5
+  $UI tap "Vlaggen" 810 2262; shot ${P}15_flags_3min 2.5
   swipe; shot ${P}16_flags_3min_scroll
   swipe_top
   # Laatste seconden voor de start (5 min)
   scen '{"running": true, "elapsed_s": 293, "proc_s": 300}'; shot ${P}17_flags_soon 1.5
-  $UI tap "Timer" 270 2225; shot ${P}18_timer_soon 1.5
+  $UI tap "Timer" 270 2262; shot ${P}18_timer_soon 1.5
 }
 
 adb shell cmd uimode night no
@@ -91,14 +95,14 @@ launch; shot F_01_timer 6
 swipe; shot F_02_timer_scroll1
 swipe; shot F_03_timer_scroll2
 swipe_top
-$UI tap "Vlaggen" 810 2225; shot F_04_flags 2
+$UI tap "Vlaggen" 810 2262; shot F_04_flags 2
 swipe; shot F_05_flags_scroll1
 adb shell settings put system font_scale 1.0
 
 # Zonder verbinding
 sudo pkill -f fake_esp.py || true
 launch; shot X_01_timer_disconnected 9
-$UI tap "Vlaggen" 810 2225; shot X_02_flags_disconnected 2
+$UI tap "Vlaggen" 810 2262; shot X_02_flags_disconnected 2
 swipe; shot X_03_flags_disconnected_scroll
 
 # Liggend

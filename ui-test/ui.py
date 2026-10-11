@@ -62,5 +62,19 @@ if __name__ == "__main__":
         sys.exit(0 if tap(sys.argv[2], fx, fy) else 1)
     if cmd == "scrollto":
         sys.exit(0 if scroll_to(sys.argv[2]) else 1)
+    if cmd == "clearanr":
+        for _ in range(3):
+            root = dump()
+            if root is None:
+                break
+            txt = " ".join((n.get("text") or "") for n in root.iter("node"))
+            if "isn't responding" not in txt and "keeps stopping" not in txt:
+                break
+            print("systeemdialoog weggetikt")
+            pos = find(root, "Wait") or find(root, "Close app")
+            if pos:
+                sh("input", "tap", str(pos[0]), str(pos[1]))
+            time.sleep(1)
+        sys.exit(0)
     if cmd == "dumpok":
         sys.exit(0 if dump() is not None else 1)

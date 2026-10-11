@@ -1,5 +1,6 @@
 package nl.julian.zztimer.ui
 
+import android.content.res.Configuration
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -55,6 +56,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -78,19 +80,20 @@ fun ScreenHeader(
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     val c = Zz.colors
+    val compact = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val lineAlpha by animateFloatAsState(if (scrolled) 1f else 0f, tween(Motion.FAST), label = "kopLijn")
     Column(Modifier.fillMaxWidth().background(c.background).statusBarsPadding()) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .heightIn(min = 60.dp)
+                .heightIn(min = if (compact) 48.dp else 60.dp)
                 .padding(start = if (navigation != null) Space.xs else Space.screen, end = Space.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             navigation?.invoke()
             Text(
                 title,
-                style = ZzType.largeTitle,
+                style = if (compact) ZzType.title else ZzType.largeTitle,
                 color = c.label,
                 maxLines = 1,
                 modifier = Modifier.weight(1f).semantics { heading() },
