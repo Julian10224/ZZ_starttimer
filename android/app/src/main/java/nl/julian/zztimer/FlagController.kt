@@ -420,12 +420,12 @@ class FlagController(
 
         return when {
             interrupt == Interrupt.POSTPONED -> base.copy(
-                phase = Phase.POSTPONED, timeText = "--:--",
+                phase = Phase.POSTPONED, timeText = "––:––",
                 flags = listOf(ShownFlag(FlagKind.AP, "Uitstelwimpel")),
                 nextText = "Wimpel neer: 1 geluidssein, waarschuwingssein 1 minuut later",
             )
             interrupt == Interrupt.GENERAL_RECALL -> base.copy(
-                phase = Phase.GENERAL_RECALL, timeText = "--:--",
+                phase = Phase.GENERAL_RECALL, timeText = "––:––",
                 flags = listOf(ShownFlag(FlagKind.FIRST_SUBSTITUTE, "Eerste vervangende")),
                 nextText = "Vlag neer: 1 geluidssein, waarschuwingssein 1 minuut later",
             )
