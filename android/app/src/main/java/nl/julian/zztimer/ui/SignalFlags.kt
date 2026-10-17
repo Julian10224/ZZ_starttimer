@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.sp
 import nl.julian.zztimer.FlagKind
 import nl.julian.zztimer.FlagLogic
@@ -108,12 +109,14 @@ private fun ClassFlag(flag: ShownFlag, height: Dp, modifier: Modifier) {
             len <= 10 -> 0.17f
             else -> 0.13f
         }
+        // De naam hoort bij de vlag zelf: vaste grootte t.o.v. de vlag, niet meeschalen met de tekstinstelling
+        val fontScale = LocalDensity.current.fontScale
         Text(
             flag.label,
             color = Color(flag.classColor.textArgb),
             fontWeight = FontWeight.Black,
-            fontSize = (height.value * size).sp,
-            lineHeight = (height.value * size * 1.05f).sp,
+            fontSize = (height.value * size / fontScale).sp,
+            lineHeight = (height.value * size * 1.05f / fontScale).sp,
             textAlign = TextAlign.Center,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
@@ -247,7 +250,8 @@ fun NoFlags(height: Dp) {
 fun UpcomingCard(item: UpcomingFlag, main: Boolean, modifier: Modifier = Modifier) {
     val c = Zz.colors
     val soon = main && item.inSeconds <= 10
-    val dirColor = if (item.up) c.positive else c.warning
+    // Richting staat in de pijl en het woord; kleur alleen ondersteunend (groen = vlag op)
+    val dirColor = if (item.up) c.positive else c.label
     val bg by animateColorAsState(
         if (soon) c.warning.copy(alpha = if (c.isDark) 0.24f else 0.12f) else c.surface,
         tween(Motion.STANDARD), label = "volgende",
@@ -294,6 +298,14 @@ fun UpcomingCard(item: UpcomingFlag, main: Boolean, modifier: Modifier = Modifie
 @Composable
 fun UpcomingFlags(items: List<UpcomingFlag>, modifier: Modifier = Modifier) {
     if (items.isEmpty()) return
+    // Bij grote tekst onder elkaar, zodat namen en tijden niet afbreken
+    if (LocalDensity.current.fontScale >= Scale.LARGE_TEXT) {
+        Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Space.m)) {
+            UpcomingCard(items[0], main = true, modifier = Modifier.fillMaxWidth())
+            if (items.size > 1) UpcomingCard(items[1], main = false, modifier = Modifier.fillMaxWidth())
+        }
+        return
+    }
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Space.m)) {
         UpcomingCard(items[0], main = true, modifier = Modifier.weight(1.25f))
         if (items.size > 1) UpcomingCard(items[1], main = false, modifier = Modifier.weight(1f))

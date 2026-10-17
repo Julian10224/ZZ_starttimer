@@ -72,3 +72,12 @@ App 1.9 heeft een nieuwe, rustige vormgeving; de werking is gelijk aan 1.8.
 - **10 s aftellen / Direct** en **5 / 3 min doorstart** (bij een geplande start) zijn segmentknoppen.
 - Liggend zijn de titel en de tabbalk compacter, zodat er meer ruimte is voor de tijd.
 - Staat op de telefoon "Animaties verwijderen" aan, dan laat de app de kleine animaties weg.
+
+Aanpassingen in app 1.10 (toets aan de Human Interface Guidelines van Apple, voor zover die voor een Android-app gelden):
+
+- De app start direct, zonder eigen openingsscherm.
+- Tijdens een procedure staat alleen **Stop / Reset** er; op de Vlaggen-pagina staan de seinen dan bovenaan.
+- De toeter is ook met TalkBack te gebruiken (dubbeltikken = 1 seconde toeteren) en geeft een trilling bij indrukken; Start en Stop / Reset ook.
+- Uitgeschakelde seinen zeggen waarom ze nu niet kunnen.
+- Contrast verbeterd: gedimde tijd zonder verbinding, getinte knoppen in donker thema, tekst op de toeterknop.
+- Bij heel grote tekst (vanaf 150%) staan waarden onder het label in plaats van ernaast.

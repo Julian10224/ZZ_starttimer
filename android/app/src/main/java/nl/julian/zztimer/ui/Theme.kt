@@ -42,9 +42,11 @@ data class ZzPalette(
     val secondaryLabel: Color,    // ondersteunende tekst
     val tertiaryLabel: Color,     // uitgeschakeld, placeholders
     val accent: Color,
+    val accentText: Color,        // accent als tekst op een getint accentvlak (≥ 4,5:1)
     val onAccent: Color,
     val positive: Color,          // verbonden, vlag op
     val warning: Color,           // toeter, laatste seconden, aandacht
+    val warningText: Color,       // waarschuwing als kleine tekst op een getint vlak (≥ 4,5:1)
     val warningFill: Color,       // vlak voor dringende instructies
     val onWarningFill: Color,
     val destructive: Color,       // stop, fouten, niet verbonden
@@ -61,9 +63,11 @@ private val LightPalette = ZzPalette(
     secondaryLabel = Color(0xFF66666B),
     tertiaryLabel = Color(0xFFA3A3A8),
     accent = Color(0xFF0B63CE),
+    accentText = Color(0xFF0B63CE),      // 4,8:1 op de getinte knop
     onAccent = Color(0xFFFFFFFF),
     positive = Color(0xFF1B7F46),
     warning = Color(0xFFB45500),
+    warningText = Color(0xFF8F4300),     // 5,4:1 op de getinte toeterknop
     warningFill = Color(0xFFFF9F0A),
     onWarningFill = Color(0xFF1A1000),
     destructive = Color(0xFFD12F26),
@@ -80,14 +84,21 @@ private val DarkPalette = ZzPalette(
     secondaryLabel = Color(0xFFA9A9AE),
     tertiaryLabel = Color(0xFF6C6C70),
     accent = Color(0xFF2F84FF),
+    accentText = Color(0xFF6AA7FF),      // 5,2:1 op de getinte knop (was 3,6:1)
     onAccent = Color(0xFFFFFFFF),
     positive = Color(0xFF34C46A),
     warning = Color(0xFFFF9F0A),
+    warningText = Color(0xFFFF9F0A),     // 7,3:1 op de getinte toeterknop
     warningFill = Color(0xFFFF9F0A),
     onWarningFill = Color(0xFF1A1000),
     destructive = Color(0xFFFF5A4F),
     isDark = true,
 )
+
+/** Ruimere opmaak bij grote tekst (Android-instelling lettergrootte vanaf 150%). */
+object Scale {
+    const val LARGE_TEXT = 1.5f
+}
 
 /** Afstanden. */
 object Space {

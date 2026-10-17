@@ -66,7 +66,7 @@ object TimerMath {
         String.format(Locale.ROOT, "%02d:%02d", remaining / 60, remaining % 60)
 
     fun raceText(status: EspStatus?, espNow: Long?): String {
-        if (status == null) return "--:--"
+        if (status == null) return "––:––"  // en-streepjes: breed genoeg naast de cijfers
         val p = proc(status.procS)
         if (!status.running || espNow == null) return format(p)
         val rem = remainingSeconds(espNow - status.startMs, status.repeat, p) ?: p

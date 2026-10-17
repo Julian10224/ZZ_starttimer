@@ -83,7 +83,7 @@ data class ShownFlag(val kind: FlagKind, val label: String, val classColor: Clas
 
 data class FlagState(
     val phase: Phase = Phase.NO_CONNECTION,
-    val timeText: String = "--:--",
+    val timeText: String = "––:––",
     val startNumber: Int = 0,           // 1, 2, 3 ... bij herhalen
     val className: String = "",
     val flags: List<ShownFlag> = emptyList(),
