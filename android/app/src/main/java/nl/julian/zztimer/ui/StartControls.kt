@@ -1,6 +1,8 @@
 package nl.julian.zztimer.ui
 
+import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -18,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -43,17 +46,32 @@ fun StartControls(vm: TimerViewModel, connected: Boolean) {
             flagState.banner?.let { InstructionBanner(it, flagState.bannerUrgent) }
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(Space.m), modifier = Modifier.fillMaxWidth()) {
-            ZzButton(
-                text = "Start",
-                onClick = vm::start,
-                enabled = flagState.canStart,
-                large = true,
-                modifier = Modifier.weight(1f),
-            )
+        // Loopt de procedure of komt een start eraan, dan kan er niet gestart worden: dan staat
+        // alleen Stop / Reset er, over de volle breedte. Anders Start (hoofdactie) en Stop / Reset.
+        val locked = flagState.running || flagState.resuming
+        val view = LocalView.current
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(Space.m),
+            modifier = Modifier.fillMaxWidth().animateContentSize(tween(Motion.STANDARD)),
+        ) {
+            if (!locked) {
+                ZzButton(
+                    text = "Start",
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        vm.start()
+                    },
+                    enabled = flagState.canStart,
+                    large = true,
+                    modifier = Modifier.weight(1f),
+                )
+            }
             ZzButton(
                 text = "Stop / Reset",
-                onClick = vm::reset,
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    vm.reset()
+                },
                 style = ButtonStyle.Tinted,
                 color = c.destructive,
                 large = true,
@@ -61,18 +79,12 @@ fun StartControls(vm: TimerViewModel, connected: Boolean) {
             )
         }
 
-        // Niet wijzigen terwijl de procedure loopt of een start eraan komt
-        val locked = flagState.running || flagState.resuming
-        SegmentedControl(
-            options = listOf("10 s aftellen", "Direct"),
-            selected = if (settings.countdownStart) 0 else 1,
-            onSelect = { vm.flags.setCountdownStart(it == 0) },
-            enabled = !locked,
-        )
-        if (locked) {
-            Footnote(
-                "Keuze vergrendeld tot de procedure is afgelopen of gestopt.",
-                modifier = Modifier.padding(horizontal = Space.xs),
+        // De keuze geldt voor de volgende start; tijdens een procedure niet zichtbaar
+        if (!locked) {
+            SegmentedControl(
+                options = listOf("10 s aftellen", "Direct"),
+                selected = if (settings.countdownStart) 0 else 1,
+                onSelect = { vm.flags.setCountdownStart(it == 0) },
             )
         }
 
@@ -93,10 +105,10 @@ fun StartControls(vm: TimerViewModel, connected: Boolean) {
                     Text(
                         "Waarschuwingssein over ${flagState.timeText}",
                         style = ZzType.body.tabular().copy(fontWeight = FontWeight.SemiBold),
-                        color = c.warning,
+                        color = c.warningText,
                         modifier = Modifier.weight(1f),
                     )
-                    ZzButton("Annuleren", vm.flags::cancelResume, style = ButtonStyle.Plain, color = c.warning)
+                    ZzButton("Annuleren", vm.flags::cancelResume, style = ButtonStyle.Plain, color = c.warningText)
                 }
             }
         }

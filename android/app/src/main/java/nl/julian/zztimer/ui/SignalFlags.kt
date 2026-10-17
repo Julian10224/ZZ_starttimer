@@ -247,7 +247,8 @@ fun NoFlags(height: Dp) {
 fun UpcomingCard(item: UpcomingFlag, main: Boolean, modifier: Modifier = Modifier) {
     val c = Zz.colors
     val soon = main && item.inSeconds <= 10
-    val dirColor = if (item.up) c.positive else c.warning
+    // Richting staat in de pijl en het woord; kleur alleen ondersteunend (groen = vlag op)
+    val dirColor = if (item.up) c.positive else c.label
     val bg by animateColorAsState(
         if (soon) c.warning.copy(alpha = if (c.isDark) 0.24f else 0.12f) else c.surface,
         tween(Motion.STANDARD), label = "volgende",

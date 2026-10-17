@@ -69,10 +69,10 @@ import nl.julian.zztimer.TimerMath
 import nl.julian.zztimer.TimerViewModel
 import nl.julian.zztimer.kind
 
-private enum class Confirm(val title: String, val text: String) {
-    INDIVIDUAL("Individuele terugroep?", "X-vlag op met één geluidssein. De vlag gaat uiterlijk na 4 minuten vanzelf neer."),
-    GENERAL("Algemene terugroep?", "Eerste vervangende op met twee geluidsseinen. De timer stopt; na het neerhalen volgt het waarschuwingssein 1 minuut later."),
-    POSTPONE("Uitstel?", "Uitstelwimpel op met twee geluidsseinen. De timer stopt; na het neerhalen volgt het waarschuwingssein 1 minuut later."),
+private enum class Confirm(val title: String, val text: String, val action: String) {
+    INDIVIDUAL("Individuele terugroep?", "X-vlag op met één geluidssein. De vlag gaat uiterlijk na 4 minuten vanzelf neer.", "X-vlag op"),
+    GENERAL("Algemene terugroep?", "Eerste vervangende op met twee geluidsseinen. De timer stopt; na het neerhalen volgt het waarschuwingssein 1 minuut later.", "Terugroepen"),
+    POSTPONE("Uitstel?", "Uitstelwimpel op met twee geluidsseinen. De timer stopt; na het neerhalen volgt het waarschuwingssein 1 minuut later.", "Uitstellen"),
 }
 
 @Composable
@@ -139,8 +139,7 @@ fun FlagsScreen(vm: TimerViewModel, bottomBar: @Composable () -> Unit) {
         ZzDialog(
             title = c.title,
             onDismiss = { confirm = null },
-            confirmText = "Uitvoeren",
-            destructive = true,
+            confirmText = c.action,
             onConfirm = {
                 when (c) {
                     Confirm.INDIVIDUAL -> vm.flags.individualRecall()
@@ -244,43 +243,16 @@ private fun FlagControls(
 ) {
     val c = Zz.colors
 
-    // Start / stop met de keuze 10 s aftellen of direct (gelijk aan de Timer-pagina)
-    StartControls(vm, connected)
-
-    // Onderbrekingen
-    when (state.interrupt) {
-        Interrupt.POSTPONED, Interrupt.GENERAL_RECALL -> Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
-            SectionHeader("Seinen")
-            ZzButton(
-                if (state.interrupt == Interrupt.POSTPONED) "Uitstelwimpel neer" else "Eerste vervangende neer",
-                onClick = vm.flags::resume,
-                enabled = state.canResume,
-                color = c.warning,
-                large = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Footnote(
-                "1 geluidssein; de timer geeft 1 minuut later zelf het waarschuwingssein.",
-                modifier = Modifier.padding(horizontal = Space.l),
-            )
-        }
-        else -> Section(header = "Seinen", footer = "Terugroepen kan tot 4 minuten na een start.") {
-            if (state.interrupt == Interrupt.INDIVIDUAL_RECALL) {
-                ActionRow("X-vlag neer (alle boten terug)", vm.flags::lowerX)
-                RowDivider()
-            }
-            SignalRow(ShownFlag(FlagKind.X, "X-vlag"), "Individuele terugroep", "X-vlag, 1 geluidssein", state.canIndividualRecall) {
-                onConfirm(Confirm.INDIVIDUAL)
-            }
-            RowDivider(inset = 72.dp)
-            SignalRow(ShownFlag(FlagKind.FIRST_SUBSTITUTE, "Eerste vervangende"), "Algemene terugroep", "Eerste vervangende, 2 geluidsseinen", state.canGeneralRecall) {
-                onConfirm(Confirm.GENERAL)
-            }
-            RowDivider(inset = 72.dp)
-            SignalRow(ShownFlag(FlagKind.AP, "Uitstelwimpel"), "Uitstel", "Uitstelwimpel, 2 geluidsseinen", state.canPostpone) {
-                onConfirm(Confirm.POSTPONE)
-            }
-        }
+    // Seinen: tijdens en vlak na een start (terugroepen) het belangrijkst, dus dan bovenaan.
+    // Vóór een start komt eerst de startbediening.
+    val signalsFirst = state.running || state.interrupt != Interrupt.NONE ||
+        state.canIndividualRecall || state.canGeneralRecall
+    if (signalsFirst) {
+        Signals(vm, state, onConfirm)
+        StartControls(vm, connected)
+    } else {
+        StartControls(vm, connected)
+        Signals(vm, state, onConfirm)
     }
 
     // Verloop volgens regel 26
@@ -317,6 +289,54 @@ private fun FlagControls(
                 else -> "Uit"
             },
         )
+    }
+}
+
+/** Onderbrekingen: terugroepen en uitstel, of het neerhalen van de uitstelwimpel / eerste vervangende. */
+@Composable
+private fun Signals(vm: TimerViewModel, state: FlagState, onConfirm: (Confirm) -> Unit) {
+    val c = Zz.colors
+    when (state.interrupt) {
+        Interrupt.POSTPONED, Interrupt.GENERAL_RECALL -> Column(verticalArrangement = Arrangement.spacedBy(Space.s)) {
+            SectionHeader("Seinen")
+            ZzButton(
+                if (state.interrupt == Interrupt.POSTPONED) "Uitstelwimpel neer" else "Eerste vervangende neer",
+                onClick = vm.flags::resume,
+                enabled = state.canResume,
+                color = c.warning,
+                large = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Footnote(
+                "1 geluidssein; de timer geeft 1 minuut later zelf het waarschuwingssein.",
+                modifier = Modifier.padding(horizontal = Space.l),
+            )
+        }
+        else -> Section(header = "Seinen") {
+            if (state.interrupt == Interrupt.INDIVIDUAL_RECALL) {
+                ActionRow("X-vlag neer (alle boten terug)", vm.flags::lowerX)
+                RowDivider()
+            }
+            // Uitgeschakeld zegt de rij waarom, in plaats van alleen te vervagen
+            val recallLater = "kan tot 4 min na een start"
+            SignalRow(
+                ShownFlag(FlagKind.X, "X-vlag"), "Individuele terugroep",
+                if (state.canIndividualRecall) "X-vlag, 1 geluidssein" else "X-vlag · $recallLater",
+                state.canIndividualRecall,
+            ) { onConfirm(Confirm.INDIVIDUAL) }
+            RowDivider(inset = 72.dp)
+            SignalRow(
+                ShownFlag(FlagKind.FIRST_SUBSTITUTE, "Eerste vervangende"), "Algemene terugroep",
+                if (state.canGeneralRecall) "Eerste vervangende, 2 geluidsseinen" else "Eerste vervangende · $recallLater",
+                state.canGeneralRecall,
+            ) { onConfirm(Confirm.GENERAL) }
+            RowDivider(inset = 72.dp)
+            SignalRow(
+                ShownFlag(FlagKind.AP, "Uitstelwimpel"), "Uitstel",
+                if (state.canPostpone) "Uitstelwimpel, 2 geluidsseinen" else "Uitstelwimpel · nu niet mogelijk",
+                state.canPostpone,
+            ) { onConfirm(Confirm.POSTPONE) }
+        }
     }
 }
 

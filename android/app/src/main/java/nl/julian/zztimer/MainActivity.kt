@@ -1,6 +1,5 @@
 package nl.julian.zztimer
 
-import android.content.res.Configuration
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -31,7 +30,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,13 +42,11 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
 import nl.julian.zztimer.ui.FlagsScreen
 import nl.julian.zztimer.ui.MainScreen
 import nl.julian.zztimer.ui.Motion
 import nl.julian.zztimer.ui.NavIcons
 import nl.julian.zztimer.ui.SettingsScreen
-import nl.julian.zztimer.ui.SplashScreen
 import nl.julian.zztimer.ui.Zz
 import nl.julian.zztimer.ui.ZzTheme
 import nl.julian.zztimer.ui.ZzType
@@ -72,23 +68,15 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun AppRoot(vm: TimerViewModel) {
-    var showSplash by rememberSaveable { mutableStateOf(true) }
+    // Geen eigen openingsscherm: de app start direct (het systeem toont kort het icoon).
     var screen by rememberSaveable { mutableStateOf("main") }
 
-    LaunchedEffect(Unit) {
-        if (showSplash) {
-            delay(1200)
-            showSplash = false
-        }
-    }
-
     Crossfade(
-        targetState = if (showSplash) "splash" else screen,
+        targetState = screen,
         animationSpec = tween(Motion.STANDARD),
         label = "scherm",
     ) { target ->
         when (target) {
-            "splash" -> SplashScreen()
             "settings" -> SettingsScreen(vm, onBack = {
                 vm.lockSettings()
                 screen = "main"
@@ -113,7 +101,8 @@ private fun AppRoot(vm: TimerViewModel) {
 @Composable
 private fun BottomNav(current: String, onSelect: (String) -> Unit) {
     val c = Zz.colors
-    val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    // Compacter bij weinig hoogte (liggend op een telefoon)
+    val landscape = LocalConfiguration.current.screenHeightDp < 480
     Column(Modifier.fillMaxWidth().background(c.surface)) {
         HorizontalDivider(thickness = 0.5.dp, color = c.separator)
         Row(

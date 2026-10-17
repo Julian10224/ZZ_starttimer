@@ -1,6 +1,7 @@
 package nl.julian.zztimer.ui
 
 import android.os.SystemClock
+import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -60,8 +61,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -199,7 +203,8 @@ private fun TimerHero(vm: TimerViewModel, status: EspStatus?, connected: Boolean
     val digitSize = with(LocalDensity.current) { (width / 3.1f).toSp() }
     val panelOff = status != null && !status.ledPanel
     val dim = !connected || panelOff
-    val digitColor by animateColorAsState(if (dim) c.tertiaryLabel else c.label, tween(Motion.STANDARD), label = "cijfers")
+    // Gedimd (geen verbinding of paneel uit) blijft leesbaar: secundaire tekstkleur, 5,1:1
+    val digitColor by animateColorAsState(if (dim) c.secondaryLabel else c.label, tween(Motion.STANDARD), label = "cijfers")
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -286,7 +291,7 @@ private fun Controls(
                 ZzButton(
                     if (panelOn) "Zet uit" else "Zet aan",
                     onClick = { vm.setLedPanel(!panelOn) },
-                    style = ButtonStyle.Tinted,
+                    style = ButtonStyle.Gray,
                     enabled = connected && status != null && (!panelOn || !running),
                 )
             })
@@ -326,9 +331,7 @@ internal fun ScheduleSection(
 
     Section(
         header = "Geplande starts",
-        footer = "Op de klok: de klok start zelf, ook als de app dicht is. " +
-            "Alleen telefoon: de app telt af en zegt wanneer je START van de klok drukt; is de klok dan verbonden, dan start de app hem. " +
-            "Zet een telefoonstart met \"Op klok zetten\" op de klok zodra die verbonden is.",
+        footer = "Een start op de klok gaat ook door als de app dicht is.",
     ) {
         if (!connected) {
             Footnote(
@@ -397,10 +400,12 @@ private fun HornButton(enabled: Boolean, onPress: () -> Unit, onRelease: () -> U
         tween(Motion.FAST), label = "toeter",
     )
     val fg = when {
-        !enabled -> c.tertiaryLabel
+        !enabled -> c.secondaryLabel
         pressed -> c.onWarningFill
-        else -> c.warning
+        else -> c.warningText
     }
+    val view = LocalView.current
+    val scope = rememberCoroutineScope()
     Surface(
         shape = RoundedCornerShape(14.dp),
         color = bg,
@@ -411,12 +416,31 @@ private fun HornButton(enabled: Boolean, onPress: () -> Unit, onRelease: () -> U
             .semantics {
                 role = Role.Button
                 contentDescription = if (enabled) "Toeter, ingedrukt houden" else "Toeter, handmatig geblokkeerd"
+                if (enabled) {
+                    // Alternatief voor ingedrukt houden (bijv. met TalkBack): toeter 1 seconde
+                    onClick(label = "Toeter 1 seconde laten klinken") {
+                        scope.launch {
+                            pressed = true
+                            onPress()
+                            try {
+                                delay(1000)
+                            } finally {
+                                pressed = false
+                                onRelease()
+                            }
+                        }
+                        true
+                    }
+                } else {
+                    disabled()
+                }
             }
             .pointerInput(enabled) {
                 if (!enabled) return@pointerInput
                 detectTapGestures(
                     onPress = {
                         pressed = true
+                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                         onPress()
                         try {
                             tryAwaitRelease()
@@ -435,9 +459,9 @@ private fun HornButton(enabled: Boolean, onPress: () -> Unit, onRelease: () -> U
         ) {
             Text(if (pressed) "Toeter klinkt" else "Toeter", style = ZzType.headline)
             Text(
-                if (enabled) "Ingedrukt houden" else "Nu niet toegestaan",
+                if (enabled) "Ingedrukt houden" else "Alleen in rust en in de eerste minuut",
                 style = ZzType.footnote,
-                color = fg.copy(alpha = 0.8f),
+                color = fg,
             )
         }
     }
@@ -514,10 +538,10 @@ private fun ScheduleRow(
             }
         }
         IconButton(onClick = onEdit, enabled = enabled) {
-            Icon(Icons.Rounded.Edit, contentDescription = "Aanpassen", tint = if (enabled) c.accent else c.tertiaryLabel)
+            Icon(Icons.Rounded.Edit, contentDescription = "Start van ${hm(s.targetEpoch)} aanpassen", tint = if (enabled) c.secondaryLabel else c.tertiaryLabel)
         }
         IconButton(onClick = onDelete, enabled = enabled) {
-            Icon(Icons.Rounded.Delete, contentDescription = "Verwijderen", tint = if (enabled) c.secondaryLabel else c.tertiaryLabel)
+            Icon(Icons.Rounded.Delete, contentDescription = "Start van ${hm(s.targetEpoch)} verwijderen", tint = if (enabled) c.secondaryLabel else c.tertiaryLabel)
         }
     }
 }
