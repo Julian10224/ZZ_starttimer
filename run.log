@@ -1,0 +1,171 @@
+Performing Streamed Install
+Success
+Physical size: 1080x2400
+Physical density: 420
+/tmp/zz_timer.xml: 1 file pushed, 0 skipped. 2.8 MB/s (170 bytes in 0.000s)
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<map>
+    <string name="host">10.0.2.2</string>
+    <string name="flag_classes">Optimist, ILCA 7</string>
+</map>
+uiautomator werkt
+Night mode: no
+screenshot L_01_timer
+screenshot L_02_timer_scroll1
+screenshot L_03_timer_scroll2
+screenshot L_03b_timer_scroll3
+tik 'Vlaggen': (810, 2298)
+screenshot L_04_flags
+screenshot L_05_flags_scroll1
+screenshot L_06_flags_scroll2
+screenshot L_07_flags_scroll3
+screenshot L_07b_flags_scroll4
+tik 'Instellingen vlaggen en stem': (1006, 207)
+screenshot L_08_flagsettings
+tik 'Uitstel': (291, 1924)
+screenshot L_08b_confirm
+tik 'Timer': (492, 207)
+tik 'Instellingen': (1006, 207)
+screenshot L_09_pin
+screenshot L_09b_pin_typed
+tik 'Openen': (789, 1114)
+screenshot L_10_settings
+screenshot L_11_settings_scroll1
+screenshot L_12_settings_scroll2
+screenshot L_12b_settings_scroll3
+scrollto: zichtbaar: ['Verbonden met de timer/', 'WEDSTRIJDTIJD/', '01:28/Wedstrijdtijd 01:28', 'Procedure loopt · 5 min doorstart/', 'P-vlag neer over 00:28/', 'Telefoontijd  13:45:39/', 'Stop / Reset/', 'TIMER/', 'Modus/', '5 min doorstart/', 'LED-paneel/', 'Aan/', 'Zet uit/', 'Toeter/', 'Handmatig geblokkeerd/', 'Uit/', 'Modus van de lopende procedure. Wijzigen', '/Toeter, handmatig geblokkeerd', 'Toeter/', 'Alleen in rust en in de eerste minuut/', 'Timer/', '/Instellingen', 'Timer/', 'Vlaggen/']
+tik 'Geplande start toevoegen': (416, 2151)
+screenshot L_13_schedule_dialog
+screenshot L_14_timer_idle
+tik 'Vlaggen': terugval (810, 2262)
+screenshot L_15_flags_3min
+screenshot L_16_flags_3min_scroll
+screenshot L_17_flags_soon
+tik 'Timer': (492, 207)
+screenshot L_18_timer_soon
+Night mode: yes
+screenshot D_01_timer
+screenshot D_02_timer_scroll1
+screenshot D_03_timer_scroll2
+screenshot D_03b_timer_scroll3
+tik 'Vlaggen': (810, 2298)
+screenshot D_04_flags
+screenshot D_05_flags_scroll1
+screenshot D_06_flags_scroll2
+screenshot D_07_flags_scroll3
+screenshot D_07b_flags_scroll4
+tik 'Instellingen vlaggen en stem': (1006, 207)
+screenshot D_08_flagsettings
+tik 'Uitstel': (291, 1924)
+screenshot D_08b_confirm
+tik 'Timer': (492, 207)
+tik 'Instellingen': (1006, 207)
+screenshot D_09_pin
+screenshot D_09b_pin_typed
+tik 'Openen': (789, 1114)
+screenshot D_10_settings
+screenshot D_11_settings_scroll1
+screenshot D_12_settings_scroll2
+screenshot D_12b_settings_scroll3
+scrollto: zichtbaar: ['Verbonden met de timer/', 'WEDSTRIJDTIJD/', '01:30/Wedstrijdtijd 01:30', 'Procedure loopt · 5 min doorstart/', 'P-vlag neer over 00:30/', 'Telefoontijd  13:48:15/', 'Stop / Reset/', 'TIMER/', 'Modus/', '5 min doorstart/', 'LED-paneel/', 'Aan/', 'Zet uit/', 'Toeter/', 'Handmatig geblokkeerd/', 'Uit/', 'Modus van de lopende procedure. Wijzigen', '/Toeter, handmatig geblokkeerd', 'Toeter/', 'Alleen in rust en in de eerste minuut/', 'Timer/', '/Instellingen', 'Timer/', 'Vlaggen/']
+tik 'Geplande start toevoegen': (416, 2091)
+screenshot D_13_schedule_dialog
+screenshot D_14_timer_idle
+tik 'Vlaggen': terugval (810, 2262)
+screenshot D_15_flags_3min
+screenshot D_16_flags_3min_scroll
+screenshot D_17_flags_soon
+tik 'Timer': (492, 207)
+screenshot D_18_timer_soon
+Night mode: no
+screenshot F_01_timer
+screenshot F_02_timer_scroll1
+screenshot F_03_timer_scroll2
+tik 'Vlaggen': (810, 2298)
+screenshot F_04_flags
+screenshot F_05_flags_scroll1
+tik 'Timer': (270, 2287)
+screenshot G_01_timer
+screenshot G_02_timer_scroll1
+screenshot G_03_timer_scroll2
+tik 'Vlaggen': (810, 2287)
+screenshot G_04_flags
+screenshot G_05_flags_scroll1
+tik 'Timer': (270, 2287)
+tik 'Instellingen': (1006, 207)
+tik 'Openen': (737, 1118)
+screenshot G_06_settings
+screenshot X_01_timer_disconnected
+tik 'Vlaggen': (810, 2298)
+screenshot X_02_flags_disconnected
+screenshot X_03_flags_disconnected_scroll
+screenshot X_04_landscape_flags
+tik 'Timer': (637, 959)
+screenshot X_05_landscape_timer
+total 10996
+drwxr-xr-x 2 runner runner   4096 Oct 17 13:50 .
+drwxr-xr-x 9 runner runner   4096 Oct 17 13:43 ..
+-rw-r--r-- 1 runner runner  21636 Oct 17 13:46 D_00_splash.png
+-rw-r--r-- 1 runner runner 171766 Oct 17 13:46 D_01_timer.png
+-rw-r--r-- 1 runner runner 200715 Oct 17 13:46 D_02_timer_scroll1.png
+-rw-r--r-- 1 runner runner 200890 Oct 17 13:46 D_03_timer_scroll2.png
+-rw-r--r-- 1 runner runner 200890 Oct 17 13:46 D_03b_timer_scroll3.png
+-rw-r--r-- 1 runner runner 167782 Oct 17 13:46 D_04_flags.png
+-rw-r--r-- 1 runner runner 213874 Oct 17 13:46 D_05_flags_scroll1.png
+-rw-r--r-- 1 runner runner 213347 Oct 17 13:47 D_06_flags_scroll2.png
+-rw-r--r-- 1 runner runner 213347 Oct 17 13:47 D_07_flags_scroll3.png
+-rw-r--r-- 1 runner runner 213347 Oct 17 13:47 D_07b_flags_scroll4.png
+-rw-r--r-- 1 runner runner 168278 Oct 17 13:47 D_08_flagsettings.png
+-rw-r--r-- 1 runner runner 150409 Oct 17 13:47 D_08b_confirm.png
+-rw-r--r-- 1 runner runner 151000 Oct 17 13:47 D_09_pin.png
+-rw-r--r-- 1 runner runner 134695 Oct 17 13:47 D_09b_pin_typed.png
+-rw-r--r-- 1 runner runner 146679 Oct 17 13:47 D_10_settings.png
+-rw-r--r-- 1 runner runner 150102 Oct 17 13:48 D_11_settings_scroll1.png
+-rw-r--r-- 1 runner runner 137807 Oct 17 13:48 D_12_settings_scroll2.png
+-rw-r--r-- 1 runner runner 137682 Oct 17 13:48 D_12b_settings_scroll3.png
+-rw-r--r-- 1 runner runner 181102 Oct 17 13:48 D_13_schedule_dialog.png
+-rw-r--r-- 1 runner runner 175797 Oct 17 13:48 D_14_timer_idle.png
+-rw-r--r-- 1 runner runner 194713 Oct 17 13:48 D_15_flags_3min.png
+-rw-r--r-- 1 runner runner 200783 Oct 17 13:48 D_16_flags_3min_scroll.png
+-rw-r--r-- 1 runner runner 177300 Oct 17 13:48 D_17_flags_soon.png
+-rw-r--r-- 1 runner runner 178119 Oct 17 13:48 D_18_timer_soon.png
+-rw-r--r-- 1 runner runner 190726 Oct 17 13:49 F_01_timer.png
+-rw-r--r-- 1 runner runner 206645 Oct 17 13:49 F_02_timer_scroll1.png
+-rw-r--r-- 1 runner runner 226762 Oct 17 13:49 F_03_timer_scroll2.png
+-rw-r--r-- 1 runner runner 178955 Oct 17 13:49 F_04_flags.png
+-rw-r--r-- 1 runner runner 206629 Oct 17 13:49 F_05_flags_scroll1.png
+-rw-r--r-- 1 runner runner 182059 Oct 17 13:49 G_01_timer.png
+-rw-r--r-- 1 runner runner 188212 Oct 17 13:49 G_02_timer_scroll1.png
+-rw-r--r-- 1 runner runner 222409 Oct 17 13:49 G_03_timer_scroll2.png
+-rw-r--r-- 1 runner runner 163041 Oct 17 13:49 G_04_flags.png
+-rw-r--r-- 1 runner runner 168161 Oct 17 13:50 G_05_flags_scroll1.png
+-rw-r--r-- 1 runner runner 164722 Oct 17 13:50 G_06_settings.png
+-rw-r--r-- 1 runner runner  58330 Oct 17 13:43 L_00_splash.png
+-rw-r--r-- 1 runner runner 167791 Oct 17 13:43 L_01_timer.png
+-rw-r--r-- 1 runner runner 202571 Oct 17 13:43 L_02_timer_scroll1.png
+-rw-r--r-- 1 runner runner 200336 Oct 17 13:44 L_03_timer_scroll2.png
+-rw-r--r-- 1 runner runner 200336 Oct 17 13:44 L_03b_timer_scroll3.png
+-rw-r--r-- 1 runner runner 170138 Oct 17 13:44 L_04_flags.png
+-rw-r--r-- 1 runner runner 185737 Oct 17 13:44 L_05_flags_scroll1.png
+-rw-r--r-- 1 runner runner 217343 Oct 17 13:44 L_06_flags_scroll2.png
+-rw-r--r-- 1 runner runner 217343 Oct 17 13:44 L_07_flags_scroll3.png
+-rw-r--r-- 1 runner runner 217343 Oct 17 13:44 L_07b_flags_scroll4.png
+-rw-r--r-- 1 runner runner 173691 Oct 17 13:44 L_08_flagsettings.png
+-rw-r--r-- 1 runner runner 150358 Oct 17 13:44 L_08b_confirm.png
+-rw-r--r-- 1 runner runner 141617 Oct 17 13:45 L_09_pin.png
+-rw-r--r-- 1 runner runner 132677 Oct 17 13:45 L_09b_pin_typed.png
+-rw-r--r-- 1 runner runner 148746 Oct 17 13:45 L_10_settings.png
+-rw-r--r-- 1 runner runner 138575 Oct 17 13:45 L_11_settings_scroll1.png
+-rw-r--r-- 1 runner runner 135255 Oct 17 13:45 L_12_settings_scroll2.png
+-rw-r--r-- 1 runner runner 135255 Oct 17 13:45 L_12b_settings_scroll3.png
+-rw-r--r-- 1 runner runner 164847 Oct 17 13:45 L_13_schedule_dialog.png
+-rw-r--r-- 1 runner runner 184754 Oct 17 13:45 L_14_timer_idle.png
+-rw-r--r-- 1 runner runner 193793 Oct 17 13:46 L_15_flags_3min.png
+-rw-r--r-- 1 runner runner 199825 Oct 17 13:46 L_16_flags_3min_scroll.png
+-rw-r--r-- 1 runner runner 173495 Oct 17 13:46 L_17_flags_soon.png
+-rw-r--r-- 1 runner runner 175050 Oct 17 13:46 L_18_timer_soon.png
+-rw-r--r-- 1 runner runner 166163 Oct 17 13:50 X_01_timer_disconnected.png
+-rw-r--r-- 1 runner runner 185143 Oct 17 13:50 X_02_flags_disconnected.png
+-rw-r--r-- 1 runner runner 195912 Oct 17 13:50 X_03_flags_disconnected_scroll.png
+-rw-r--r-- 1 runner runner 163099 Oct 17 13:50 X_04_landscape_flags.png
+-rw-r--r-- 1 runner runner 110652 Oct 17 13:50 X_05_landscape_timer.png

@@ -1,0 +1,37 @@
+nep-ESP luistert op 81
+connection handler failed
+Traceback (most recent call last):
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/websockets/asyncio/server.py", line 762, in protocol_handler
+    await handler(connection)
+  File "/home/runner/work/ZZ_starttimer/ZZ_starttimer/ui-test/fake_esp.py", line 74, in handler
+    async for msg in ws:
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/websockets/asyncio/connection.py", line 237, in __aiter__
+    yield await self.recv()
+          ^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/websockets/asyncio/connection.py", line 317, in recv
+    raise self.protocol.close_exc from self.recv_exc
+websockets.exceptions.ConnectionClosedError: no close frame received or sent
+connection handler failed
+Traceback (most recent call last):
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/websockets/asyncio/server.py", line 762, in protocol_handler
+    await handler(connection)
+  File "/home/runner/work/ZZ_starttimer/ZZ_starttimer/ui-test/fake_esp.py", line 74, in handler
+    async for msg in ws:
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/websockets/asyncio/connection.py", line 237, in __aiter__
+    yield await self.recv()
+          ^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/websockets/asyncio/connection.py", line 317, in recv
+    raise self.protocol.close_exc from self.recv_exc
+websockets.exceptions.ConnectionClosedError: no close frame received or sent
+connection handler failed
+Traceback (most recent call last):
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/websockets/asyncio/server.py", line 762, in protocol_handler
+    await handler(connection)
+  File "/home/runner/work/ZZ_starttimer/ZZ_starttimer/ui-test/fake_esp.py", line 74, in handler
+    async for msg in ws:
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/websockets/asyncio/connection.py", line 237, in __aiter__
+    yield await self.recv()
+          ^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/websockets/asyncio/connection.py", line 317, in recv
+    raise self.protocol.close_exc from self.recv_exc
+websockets.exceptions.ConnectionClosedError: no close frame received or sent
