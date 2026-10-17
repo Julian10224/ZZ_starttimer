@@ -4,6 +4,17 @@ Alle wijzigingen per versie. De versies staan in `firmware/Timer_ZZ_Vx/` en als 
 
 ---
 
+## App 1.10 — toets aan de richtlijnen van Apple
+
+- Geen eigen openingsscherm meer (1,2 s); de app start direct.
+- Tijdens een procedure: START en de keuze 10 s aftellen / Direct verborgen, Stop / Reset over de volle breedte. Op de Vlaggen-pagina staan de seinen dan bovenaan.
+- Toeter bruikbaar met TalkBack (actie "1 seconde"), trilling bij toeter, Start en Stop / Reset.
+- Contrast: gedimde tijd 2,3:1 → 5,1:1 (licht), getinte accentknoppen in donker 3,6:1 → 5,2:1, toeterknoptekst 3,8:1 → 5,4:1.
+- Accentkleur alleen voor acties en status: potloodjes en "Zet uit" neutraal, "Neer" niet meer oranje.
+- Segmentkeuzes en keuzecapsules minimaal 44 dp hoog; bij grote tekst waarden onder het label; compacte kop op basis van beschikbare hoogte.
+- Bevestigingen met een werkwoord op de knop ("X-vlag op", "Terugroepen", "Uitstellen"); uitgeschakelde seinen zeggen waarom.
+- Kortere uitleg bij geplande starts.
+
 ## App 1.9 — nieuwe vormgeving
 
 - Volledig nieuwe, rustige vormgeving van de Android-app; werking, protocol en opgeslagen instellingen zijn gelijk aan 1.8.

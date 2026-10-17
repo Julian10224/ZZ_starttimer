@@ -7,7 +7,7 @@ Nodig: de timer met V7A, een Android-telefoon met de app en een stopwatch of twe
 | 1 | Nauwkeurigheid 5 min | Verbind de app, start via de fysieke knop, laat de procedure 5 minuten lopen. Film of vergelijk het display en de app tegelijk. | ESP-display = app op elk moment (hooguit een fractie van een seconde verschil bij het omslaan). 0:00 valt 300 s na START (±0,1 s met stopwatch). |
 | 2 | WiFi weg | Start een procedure, zet op de telefoon WiFi uit, wacht 30 s, zet het weer aan. | De timer loopt ongestoord door en de hoorn klinkt op tijd. De app toont **● Geen verbinding**, daarna automatisch **● Verbonden met de timer** met dezelfde tijd als het display. |
 | 3 | App sluiten | Start een procedure en sluit de app (ook uit de recente apps). | De timer loopt door. |
-| 4 | App opnieuw openen | Open de app tijdens test 3. | Na het splashscreen staat direct de juiste tijd in beeld. |
+| 4 | App opnieuw openen | Open de app tijdens test 3. | Direct na het openen staat de juiste tijd in beeld. |
 | 5 | Fysieke START | Druk op de startknop op de timer. | De app toont binnen 1 s "Procedure loopt" en de juiste tijd; bij Toeter **Klinkt** tijdens het signaal. |
 | 6 | STOP via de app | Druk tijdens een procedure in de app op STOP / RESET. | Het fysieke display springt naar 5:00; de app ook. |
 | 7 | LED-paneel fysiek | Houd reset 3 s vast in rust; druk daarna weer kort. | De app toont bij LED-paneel **Uit** en daarna **Aan**. |

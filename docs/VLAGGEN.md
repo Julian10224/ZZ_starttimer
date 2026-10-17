@@ -44,7 +44,7 @@ Het verloop op de vlaggenpagina toont dan drie stappen (3:00, 1:00, 0:00).
   - *10 s aftellen*: de stem zegt "Klassevlag op over tien seconden" en telt "Vijf … Eén", daarna start de timer met het waarschuwingssein. De app plant die start op de timer zelf, zodat hij precies op tijd start, ook als de telefoon hapert.
   - *Direct*: de timer start meteen; de stem zegt direct het waarschuwingssein.
   - Tijdens het aftellen staat onder de knoppen "Waarschuwingssein over 0:07" met **Annuleren**.
-  - De keuze is vergrendeld zolang de procedure loopt of een start eraan komt.
+  - Zolang de procedure loopt of een start eraan komt, staat alleen **Stop / Reset** er (over de volle breedte); START en de keuze verschijnen weer als de procedure is afgelopen of gestopt.
 - **Geplande starts** staan op beide pagina's (zelfde lijst, toevoegen/aanpassen/verwijderen kan op allebei), met "Waarschuwingssein over …" als de start binnen een uur valt. Vlak voor een geplande start: 30 s vooraf "Waarschuwingssein over dertig seconden", en in de stand *10 s aftellen* ook "Klassevlag op over tien seconden" en "Vijf … Eén". De start zelf doet altijd de timer, ook als de app dicht is; voor de stem moet de app open zijn.
 - De **fysieke startknop** op de timer start direct, zonder aftellen.
 - **Doorstart** (vanaf V7B altijd; schakelaar open = 5 minuten, gesloten = 3 minuten): de start van de ene klasse is het waarschuwingssein van de volgende. De stem zegt dan "Start! Klassevlag Optimist neer. Waarschuwingssein klassevlag ILCA 7. Nog vijf minuten." De klassen stel je in via het tandwiel, gescheiden door komma's.

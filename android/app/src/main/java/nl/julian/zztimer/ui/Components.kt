@@ -1,6 +1,5 @@
 package nl.julian.zztimer.ui
 
-import android.content.res.Configuration
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -57,6 +56,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -80,7 +80,8 @@ fun ScreenHeader(
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     val c = Zz.colors
-    val compact = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    // Compact bij weinig hoogte (liggend op een telefoon), niet op basis van de oriëntatie
+    val compact = LocalConfiguration.current.screenHeightDp < 480
     val lineAlpha by animateFloatAsState(if (scrolled) 1f else 0f, tween(Motion.FAST), label = "kopLijn")
     Column(Modifier.fillMaxWidth().background(c.background).statusBarsPadding()) {
         Row(
@@ -95,7 +96,7 @@ fun ScreenHeader(
                 title,
                 style = if (compact) ZzType.title else ZzType.largeTitle,
                 color = c.label,
-                maxLines = 1,
+                maxLines = 2,
                 modifier = Modifier.weight(1f).semantics { heading() },
             )
             actions()
@@ -182,9 +183,12 @@ fun ListRow(
         modifier
             .fillMaxWidth()
             .heightIn(min = 52.dp)
-            .then(if (onClick != null) Modifier.clickable(enabled = enabled, role = role, onClick = onClick) else Modifier)
+            .then(
+                if (onClick != null) Modifier.clickable(enabled = enabled, role = role, onClick = onClick)
+                else Modifier.semantics(mergeDescendants = true) {}
+            )
             .padding(horizontal = Space.l, vertical = 10.dp)
-            .alpha(if (enabled) 1f else 0.4f),
+            .alpha(if (enabled) 1f else 0.55f),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (leading != null) {
@@ -202,9 +206,13 @@ fun ListRow(
     }
 }
 
-/** Rij met een waarde rechts, bijv. "Firmware   V7B". */
+/** Rij met een waarde rechts, bijv. "Firmware   V7B". Bij grote tekst staat de waarde eronder. */
 @Composable
 fun ValueRow(label: String, value: String, valueColor: Color = Color.Unspecified) {
+    if (LocalDensity.current.fontScale >= Scale.LARGE_TEXT) {
+        ListRow(label, subtitle = value)
+        return
+    }
     ListRow(label, trailing = {
         Text(
             value,
@@ -241,7 +249,11 @@ fun Footnote(text: String, modifier: Modifier = Modifier, color: Color = Zz.colo
 
 // ===================================================================== knoppen
 
-enum class ButtonStyle { Filled, Tinted, Plain }
+/**
+ * Filled: de belangrijkste actie (gevuld, witte tekst). Tinted: actie met een eigen betekenis
+ * (stop, toeter). Gray: neutrale bijactie. Plain: alleen tekst.
+ */
+enum class ButtonStyle { Filled, Tinted, Gray, Plain }
 
 /**
  * Knop met een rustige drukreactie (iets kleiner en lichter). [color] is de kleur van de knop:
@@ -268,6 +280,7 @@ fun ZzButton(
             !enabled && style != ButtonStyle.Plain -> c.fill
             style == ButtonStyle.Filled -> color
             style == ButtonStyle.Tinted -> color.copy(alpha = if (c.isDark) 0.22f else 0.12f)
+            style == ButtonStyle.Gray -> c.fill
             else -> Color.Transparent
         },
         tween(Motion.STANDARD), label = "knopKleur",
@@ -275,6 +288,8 @@ fun ZzButton(
     val content = when {
         !enabled -> c.tertiaryLabel
         style == ButtonStyle.Filled -> Color.White
+        style == ButtonStyle.Gray -> c.label
+        color == c.accent -> c.accentText
         else -> color
     }
     Surface(
@@ -333,7 +348,7 @@ fun SegmentedControl(
     BoxWithConstraints(
         modifier
             .fillMaxWidth()
-            .heightIn(min = 40.dp)
+            .heightIn(min = 44.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(c.fill)
             .padding(3.dp)
@@ -358,7 +373,7 @@ fun SegmentedControl(
                 Box(
                     Modifier
                         .weight(1f)
-                        .heightIn(min = 34.dp)
+                        .heightIn(min = 38.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .selectable(selected = i == selected, enabled = enabled, role = Role.RadioButton) { onSelect(i) },
                     contentAlignment = Alignment.Center,
@@ -387,7 +402,7 @@ fun ChoicePill(label: String, selected: Boolean, onClick: () -> Unit, leading: (
             .clip(CircleShape)
             .background(bg)
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
-            .heightIn(min = 40.dp)
+            .heightIn(min = 44.dp)
             .padding(horizontal = 14.dp, vertical = Space.s),
         verticalAlignment = Alignment.CenterVertically,
     ) {
