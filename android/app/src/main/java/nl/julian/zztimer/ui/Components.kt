@@ -363,8 +363,7 @@ fun SegmentedControl(
                         .offset(x = offset)
                         .width(segment)
                         .fillMaxHeight()
-                        .shadow(if (c.isDark) 0.dp else 1.5.dp, RoundedCornerShape(8.dp))
-                        .background(c.surfaceRaised, RoundedCornerShape(8.dp)),
+                        .background(c.accent, RoundedCornerShape(8.dp)),
                 )
             }
         }
@@ -381,7 +380,8 @@ fun SegmentedControl(
                     Text(
                         label,
                         style = if (i == selected) ZzType.callout.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold) else ZzType.callout,
-                        color = c.label,
+                        // Gekozen segment blauw met witte tekst, zodat de keuze direct opvalt
+                        color = if (i == selected) c.onAccent else c.label,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = Space.s, vertical = 6.dp),
                     )

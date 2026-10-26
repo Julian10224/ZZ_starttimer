@@ -4,6 +4,11 @@ Alle wijzigingen per versie. De versies staan in `firmware/Timer_ZZ_Vx/` en als 
 
 ---
 
+## App 1.11
+
+- Toeter: "Handmatig toegestaan / geblokkeerd" staat nu op de toeterknop zelf in plaats van onder de regel Toeter.
+- Keuze "10 s aftellen / Direct" (en 5 / 3 min bij een geplande start): het gekozen segment is blauw met witte tekst.
+
 ## App 1.10 — toets aan de richtlijnen van Apple
 
 - Geen eigen openingsscherm meer (1,2 s); de app start direct.

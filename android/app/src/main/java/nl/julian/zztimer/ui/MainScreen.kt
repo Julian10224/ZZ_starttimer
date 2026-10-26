@@ -298,7 +298,6 @@ private fun Controls(
             RowDivider()
             ListRow(
                 "Toeter",
-                subtitle = if (status?.manualAllowed == true) "Handmatig toegestaan" else "Handmatig geblokkeerd",
                 trailing = { StatusValue(status?.horn == true, "Klinkt", "Uit", c.warning) },
             )
         }
@@ -459,7 +458,7 @@ private fun HornButton(enabled: Boolean, onPress: () -> Unit, onRelease: () -> U
         ) {
             Text(if (pressed) "Toeter klinkt" else "Toeter", style = ZzType.headline)
             Text(
-                if (enabled) "Ingedrukt houden" else "Alleen in rust en in de eerste minuut",
+                if (enabled) "Handmatig toegestaan · ingedrukt houden" else "Handmatig geblokkeerd",
                 style = ZzType.footnote,
                 color = fg,
             )
